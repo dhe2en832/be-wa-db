@@ -427,10 +427,14 @@ io.on("connection", function (socket) {
          }).then((success) => {
             if (success) {
                socket.emit("received_message", 1);
-               nodeFetch("http://192.168.100.81:8090/api/incoming", {
+               const urlAPI = config.CallbackAPI.MessageIncomingEndpoint || "http://192.168.100.81:8090/api/incoming";
+               console.log(urlAPI);
+               nodeFetch(urlAPI, {
                   method: "post",
                   body: JSON.stringify({ status: "Incoming", message: msg }),
-                  headers: { "Content-Type": "application/json" },
+                  headers: {
+                     "Content-Type": "application/json",
+                  },
                })
                   .then((res) => res.json())
                   .then((json) => console.log(json))
@@ -508,10 +512,14 @@ io.on("connection", function (socket) {
          4: "On Played",
       };
       const statusMsg = valAck[ack];
-      nodeFetch("http://192.168.100.81:8090/api/notifier", {
+      const urlAPI = config.CallbackAPI.MessageStatusEndpoint || "http://192.168.100.81:8090/api/notifier";
+      console.log(urlAPI);
+      nodeFetch(urlAPI, {
          method: "post",
          body: JSON.stringify({ status: statusMsg, message: msg }),
-         headers: { "Content-Type": "application/json" },
+         headers: {
+            "Content-Type": "application/json",
+         },
       })
          .then((res) => res.json())
          .then((json) => console.log(json))
