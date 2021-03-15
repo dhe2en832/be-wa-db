@@ -1,0 +1,10 @@
+/node_modules
+/backup
+/dist
+backup_wacsa.ini
+wacsa-error.txt
+wacsa-received.json
+wacsa-sent.json
+wacsa-session.json
+wacsa-statistic.json
+.env

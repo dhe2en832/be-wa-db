@@ -1,0 +1,74 @@
+{
+  "name": "wacsa",
+  "version": "1.0.0-alpha4",
+  "description": "Whatsapp API Powered By CSA Computer",
+  "main": "main.js",
+  "dependencies": {
+    "async-mutex": "^0.2.6",
+    "cors": "^2.8.5",
+    "custom-electron-titlebar": "^3.2.6",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "express-fileupload": "^1.2.1",
+    "express-validator": "^6.9.2",
+    "fs": "^0.0.1-security",
+    "http": "^0.0.1-security",
+    "ini": "^1.3.5",
+    "jquery": "^3.5.1",
+    "jsonwebtoken": "^8.5.1",
+    "node-fetch": "^2.6.1",
+    "qrcode": "^1.4.4",
+    "socket.io": "^2.4.1",
+    "whatsapp-web.js": "^1.12.5"
+  },
+  "devDependencies": {
+    "electron": "^11.3.0",
+    "electron-alert": "^0.1.11",
+    "electron-builder": "^22.10.5",
+    "electron-packager": "^15.2.0"
+  },
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-packager ./ wacsa --platform=win32 --arch=x64 --icon=images/icon.ico --overwrite",
+    "build": "rm -rf dist && electron-builder"
+  },
+  "author": "CSA Computer",
+  "license": "MIT",
+  "keywords": [
+    "whatsapp-web.js",
+    "electron.js",
+    "csa-computer"
+  ],
+  "build": {
+    "asar": false,
+    "appId": "id.csacomputer.wacsa",
+    "copyright": "Copyright © 2020 CSA Computer x Whatsapp",
+    "productName": "wacsa",
+    "win": {
+      "target": "nsis",
+      "icon": "images/icon.ico"
+    },
+    "nsis": {
+      "installerIcon": "images/icon.ico",
+      "uninstallerIcon": "images/uninstaller-icon.ico",
+      "deleteAppDataOnUninstall": true,
+      "menuCategory": true,
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "include": "./installer.nsh"
+    },
+    "extraFiles": [
+      {
+        "from": "./wacsa.ini",
+        "to": "."
+      },
+      {
+        "from": "./backup_wacsa.ini",
+        "to": "."
+      },
+      "backup"
+    ]
+  }
+}

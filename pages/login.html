@@ -1,0 +1,29 @@
+<div class="container-fluid">
+   <div class="row">
+      <div class="col-md-4"></div>
+      <div class="col-md-4">
+         <div class="text-center error-login"></div>
+         <div class="text-center p-4 m-4">
+            <form class="form-group">
+               <img class="mb-4" src="./images/icon.ico" alt="CSA-Logo" width="72" height="72" />
+               <h1 class="h3 mb-3 font-weight-normal">Login Prompt</h1>
+               <label for="inputEmail" class="sr-only">Email Address</label>
+               <input type="email" id="inputEmail" class="form-control" placeholder="Email" required autofocus />
+               <label for="inputPassword" class="sr-only">Password</label>
+               <div class="input-group" id="showHidePassword">
+                  <input class="form-control" type="password" id="inputPassword" placeholder="Password" required />
+                  <div class="input-group-append">
+                     <a class="input-group-text text-decoration-none"><i class="fas fa-eye-slash" aria-hidden="true"></i></a>
+                  </div>
+               </div>
+               <button id="submitLogin" class="btn btn-sm btn-primary btn-block mt-4" type="submit">Submit</button>
+               <p class="mt-5 mb-3 text-muted small">Copyright &copy; 2021 CSA Computer. All Right Reserved</p>
+            </form>
+         </div>
+      </div>
+      <div class="col-md-4"></div>
+      <div class="col-md-12 text-center">
+         <div id="alertContainer"></div>
+      </div>
+   </div>
+</div>
