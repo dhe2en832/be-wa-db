@@ -17,6 +17,7 @@ const { dateTimeGeneratorServer } = require("./scripts/utils/dateTimeGenerator")
 const { Mutex } = require("async-mutex");
 const withTimeout = require("async-mutex").withTimeout;
 const nodeFetch = require("node-fetch");
+const callbackAPI = require("./scripts/callbacks");
 
 // Path Script
 dotenv.config();
@@ -427,21 +428,19 @@ io.on("connection", function (socket) {
          }).then((success) => {
             if (success) {
                socket.emit("received_message", 1);
-               const urlAPI = config.CallbackAPI.MessageIncomingEndpoint || "http://192.168.100.81:8090/api/incoming";
-               console.log(urlAPI);
-               nodeFetch(urlAPI, {
-                  method: "post",
-                  body: JSON.stringify({ status: "Incoming", message: msg }),
-                  headers: {
-                     "Content-Type": "application/json",
-                     [config.CallbackAPI.AuthKey || undefined]: config.CallbackAPI.AuthValue || undefined,
+               await callbackAPI({
+                  nodeFetch: nodeFetch,
+                  url: config.CallbackAPI.MessageIncomingEndpoint || "http://192.168.100.81:8090/api/incoming",
+                  options : {
+                     method: "post",
+                     headers: {
+                        "Content-Type": "application/json",
+                        [config.CallbackAPI.AuthKey || undefined]: config.CallbackAPI.AuthValue || undefined,
+                     },
+                     body: JSON.stringify({ status: "Incoming", message: msg }, null, 2),
                   },
+                  retry: config.CallbackAPI.RetryFailure || 3
                })
-                  .then((res) => res.json())
-                  .then((json) => console.log(json))
-                  .catch((err) => {
-                     if (err) errorLogger(err);
-                  });
             }
          });
       } catch (error) {
@@ -503,31 +502,33 @@ io.on("connection", function (socket) {
    });
 
    //WAWEBjs On Message Ack
-   client.on("message_ack", (msg, ack) => {
-      const valAck = {
-         "-1": "Error",
-         0: "Pending",
-         1: "At The Server",
-         2: "Delivered",
-         3: "Read",
-         4: "On Played",
+   client.on("message_ack", async (msg, ack) => {
+      try {
+         const valAck = {
+            "-1": "Error",
+            0: "Pending",
+            1: "At The Server",
+            2: "Delivered",
+            3: "Read",
+            4: "On Played",
+         };
+         await callbackAPI({
+            nodeFetch: nodeFetch,
+            url: config.CallbackAPI.MessageStatusEndpoint || "http://192.168.100.81:8090/api/notifier",
+            options: {
+               method: "post",
+               headers: {
+                  "Content-Type": "application/json",
+                  [config.CallbackAPI.AuthKeyName || undefined]: config.CallbackAPI.AuthKeyValue || undefined,
+               },
+               body: JSON.stringify({ status: valAck[ack], message: msg }, null, 2),
+            },
+            retry: config.CallbackAPI.RetryFailure || 3,
+         })
+      } catch (error) {
+         console.log(error);
+         errorLogger(error);
       };
-      const statusMsg = valAck[ack];
-      const urlAPI = config.CallbackAPI.MessageStatusEndpoint || "http://192.168.100.81:8090/api/notifier";
-      console.log(urlAPI);
-      nodeFetch(urlAPI, {
-         method: "post",
-         body: JSON.stringify({ status: statusMsg, message: msg }),
-         headers: {
-            "Content-Type": "application/json",
-            [config.CallbackAPI.AuthKey || undefined]: config.CallbackAPI.AuthValue || undefined,
-         },
-      })
-         .then((res) => res.json())
-         .then((json) => console.log(json))
-         .catch((err) => {
-            if (err) errorLogger(err);
-         });
    });
 
    // WAWEBjs On Whatsapp Disconnected From Mobile Apps
