@@ -83,9 +83,10 @@ const client = new Client({
       ],
    },
    session: sessionCfg,
+   userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36",
    restartOnAuthFail: true,
    takeoverOnConflict: true,
-   takeoverTimeoutMs: 10000,
+   takeoverTimeoutMs: 1000,
 });
 
 // Mutex of File Handle Script
@@ -343,7 +344,6 @@ io.on("connection", function (socket) {
    // WAWEBjs On Ready
    client.on("ready", () => {
       socket.emit("ready");
-      socket.emit("logs", "Whatsapp Telah Siap!");
       socket.emit("info", client.info.wid.user, client.info.pushname, client.info.platform, client.info.phone.wa_version);
       currentStats(socket);
    });
@@ -351,7 +351,6 @@ io.on("connection", function (socket) {
    // WAWEBjs On Authenticated
    client.on("authenticated", (session) => {
       socket.emit("authenticated");
-      socket.emit("logs", "Whatsapp telah diotentikasi!");
       sessionCfg = session;
       fs.writeFile(SESSION_FILE_PATH, JSON.stringify(session), function (err) {
          if (err) {
@@ -533,6 +532,7 @@ io.on("connection", function (socket) {
 
    // WAWEBjs On Whatsapp Disconnected From Mobile Apps
    client.on("disconnected", (reason) => {
+      console.log("DISCONNECTED", reason);
       socket.emit("disconnected_client");
       socket.emit("logs", "Whatsapp telah terputus! Error : " + reason);
       try {
