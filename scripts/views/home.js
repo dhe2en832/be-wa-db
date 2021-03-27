@@ -66,6 +66,8 @@ const scriptsHome = (ipcRenderer, socket) => {
    });
 
    socket.on("disconnected_client", function () {
+      $("#rev_counter").text(0);
+      $("#sen_counter").text(0);
       $("#loading").show();
       $("#app").hide();
       $("#content").hide();
