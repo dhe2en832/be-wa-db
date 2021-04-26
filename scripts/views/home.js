@@ -36,6 +36,7 @@ const scriptsHome = (ipcRenderer, socket) => {
    });
 
    socket.on("logs", function (msg) {
+      if ($(".logs").children().length > 6) $(".logs").html("");
       $(".logs").append($("<li>").text(msg));
    });
 
