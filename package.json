@@ -29,7 +29,7 @@
    "scripts": {
       "start": "electron .",
       "package": "electron-packager ./ wacsa --platform=win32 --arch=x64 --icon=images/icon.ico --overwrite",
-      "copy": "cp ChromeSetup.exe dist/",
+      "copy": "cp ChromeSetup.exe dist/ && cp readme.txt dist/",
       "build": "rm -rf dist && electron-builder && npm run copy"
    },
    "author": "CSA Computer",
