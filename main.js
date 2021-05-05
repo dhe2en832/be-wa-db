@@ -426,20 +426,22 @@ io.on("connection", function (socket) {
          }).then(async (success) => {
             if (success) {
                socket.emit("received_message", 1);
-               await callbacks({
-                  nodeFetch: nodeFetch,
-                  url: config.CallbackAPI.MessageIncomingEndpoint || "http://192.168.100.81:8090/api/incoming",
-                  options: {
-                     method: "post",
-                     headers: {
-                        "Content-Type": "application/json",
-                        [config.CallbackAPI.AuthKey || undefined]: config.CallbackAPI.AuthValue || undefined,
+               if (config.CallbackAPI.MessageIncomingEndpoint !== "") {
+                  await callbacks({
+                     nodeFetch: nodeFetch,
+                     url: config.CallbackAPI.MessageIncomingEndpoint,
+                     options: {
+                        method: "post",
+                        headers: {
+                           "Content-Type": "application/json",
+                           [config.CallbackAPI.AuthKey || undefined]: config.CallbackAPI.AuthValue || undefined,
+                        },
+                        body: JSON.stringify({ status: "Incoming", message: msg }, null, 2),
                      },
-                     body: JSON.stringify({ status: "Incoming", message: msg }, null, 2),
-                  },
-                  retry: config.CallbackAPI.RetryFailure || 3,
-                  interval: config.CallbackAPI.IntervalFailure || 1,
-               }).catch((err) => errorLogger(err));
+                     retry: config.CallbackAPI.RetryFailure || 3,
+                     interval: config.CallbackAPI.IntervalFailure || 1,
+                  }).catch((err) => errorLogger(err));
+               }
             }
          });
       } catch (error) {
@@ -511,20 +513,22 @@ io.on("connection", function (socket) {
             3: "Read",
             4: "On Played",
          };
-         await callbacks({
-            nodeFetch: nodeFetch,
-            url: config.CallbackAPI.MessageStatusEndpoint || "http://192.168.100.81:8090/api/notifier",
-            options: {
-               method: "post",
-               headers: {
-                  "Content-Type": "application/json",
-                  [config.CallbackAPI.AuthKeyName || undefined]: config.CallbackAPI.AuthKeyValue || undefined,
+         if (config.CallbackAPI.MessageStatusEndpoint !== "") {
+            await callbacks({
+               nodeFetch: nodeFetch,
+               url: config.CallbackAPI.MessageStatusEndpoint,
+               options: {
+                  method: "post",
+                  headers: {
+                     "Content-Type": "application/json",
+                     [config.CallbackAPI.AuthKeyName || undefined]: config.CallbackAPI.AuthKeyValue || undefined,
+                  },
+                  body: JSON.stringify({ status: valAck[ack], message: msg }, null, 2),
                },
-               body: JSON.stringify({ status: valAck[ack], message: msg }, null, 2),
-            },
-            retry: config.CallbackAPI.RetryFailure || 3,
-            interval: config.CallbackAPI.IntervalFailure || 1,
-         });
+               retry: config.CallbackAPI.RetryFailure || 3,
+               interval: config.CallbackAPI.IntervalFailure || 1,
+            });
+         }
       } catch (error) {
          errorLogger(error);
       }
