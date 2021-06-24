@@ -734,7 +734,7 @@ server
         });
         const options = {
           type: 'warning',
-          icon: path.resolve(rootPath + '/images/icon.ico'),
+          icon: path.resolve(app.getAppPath() + '/images/icon.ico'),
           buttons: [],
           defaultId: 0,
           title: 'Perhatian',
