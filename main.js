@@ -68,7 +68,7 @@ appExpress.get('/', (req, res) => {
   res.sendFile('index.html', { root: __dirname });
 });
 const server = http.createServer(appExpress);
-const PORT = config.ServerOptions.port || 8000;
+const PORT = config.ServerOptions.port || 8008;
 const io = socketIO(server);
 
 // Init WAWebJS Script
