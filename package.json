@@ -1,6 +1,6 @@
 {
    "name": "wacsa",
-   "version": "0.9.0",
+   "version": "0.9.1",
    "description": "Whatsapp API Powered By CSA Computer",
    "main": "main.js",
    "dependencies": {
@@ -19,7 +19,7 @@
       "node-fetch": "^2.6.1",
       "qrcode": "^1.4.4",
       "socket.io": "^2.4.1",
-      "whatsapp-web.js": "^1.12.6"
+      "whatsapp-web.js": "^1.13.2"
    },
    "devDependencies": {
       "electron": "^12.0.10",
