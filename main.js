@@ -18,7 +18,6 @@ const { Mutex } = require('async-mutex');
 const withTimeout = require('async-mutex').withTimeout;
 const nodeFetch = require('node-fetch');
 const { callbacks } = require('./scripts/callbacks');
-const { response } = require('express');
 
 // Path Script
 dotenv.config();
