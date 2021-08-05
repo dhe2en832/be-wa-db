@@ -19,8 +19,7 @@ const nodeFetch = require('node-fetch');
 const { callbacks } = require('./main/callbacks');
 
 // Path Script
-const rootPath =
-  process.env.NODE_ENV === undefined ? app.getAppPath() : path.dirname(app.getPath('exe'));
+const rootPath = app.isPackaged === false ? app.getAppPath() : path.dirname(app.getPath('exe'));
 const config = ini.parse(fs.readFileSync(path.resolve(rootPath + '/wacsa.ini'), 'utf-8'));
 const SESSION_FILE_PATH = path.resolve(rootPath + '/wacsa-session.json');
 const ERROR_FILE_PATH = path.resolve(rootPath + '/wacsa-error.log');
@@ -58,7 +57,7 @@ appExpress.use(express.json());
 appExpress.use(express.urlencoded({ extended: true }));
 appExpress.use(
   fileUpload({
-    debug: process.env.NODE_ENV === undefined ? true : false,
+    debug: app.isPackaged === false ? true : false,
   })
 );
 appExpress.disable('x-powered-by');
@@ -365,7 +364,7 @@ server
             enableRemoteModule: true,
             nodeIntegration: true,
             contextIsolation: false,
-            devTools: process.env.NODE_ENV === undefined ? true : false,
+            devTools: app.isPackaged === false ? true : false,
           },
         });
         win.loadFile(path.join(__dirname, '/index.html'));
@@ -723,7 +722,7 @@ server
           frame: false,
           resizable: false,
           webPreferences: {
-            devTools: process.env.NODE_ENV === undefined ? true : false,
+            devTools: app.isPackaged === false ? true : false,
           },
         });
         const options = {
