@@ -1,7 +1,6 @@
 node_modules
 dist
 environment
-.env
 backup_wacsa_old.ini
 backup_wacsa.ini
 wacsa-error.log

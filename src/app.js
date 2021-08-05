@@ -1,5 +1,4 @@
 // Import Dependency
-process.env.NODE_ENV !== 'production' && require('dotenv').config();
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const ini = require('ini');
 const path = require('path');
@@ -21,7 +20,7 @@ const { callbacks } = require('./main/callbacks');
 
 // Path Script
 const rootPath =
-  process.env.NODE_ENV === 'development' ? app.getAppPath() : path.dirname(app.getPath('exe'));
+  process.env.NODE_ENV === undefined ? app.getAppPath() : path.dirname(app.getPath('exe'));
 const config = ini.parse(fs.readFileSync(path.resolve(rootPath + '/wacsa.ini'), 'utf-8'));
 const SESSION_FILE_PATH = path.resolve(rootPath + '/wacsa-session.json');
 const ERROR_FILE_PATH = path.resolve(rootPath + '/wacsa-error.log');
@@ -59,7 +58,7 @@ appExpress.use(express.json());
 appExpress.use(express.urlencoded({ extended: true }));
 appExpress.use(
   fileUpload({
-    debug: process.env.NODE_ENV === 'development' ? true : false,
+    debug: process.env.NODE_ENV === undefined ? true : false,
   })
 );
 appExpress.disable('x-powered-by');
@@ -366,7 +365,7 @@ server
             enableRemoteModule: true,
             nodeIntegration: true,
             contextIsolation: false,
-            devTools: process.env.NODE_ENV === 'development' ? true : false,
+            devTools: process.env.NODE_ENV === undefined ? true : false,
           },
         });
         win.loadFile(path.join(__dirname, '/index.html'));
@@ -724,7 +723,7 @@ server
           frame: false,
           resizable: false,
           webPreferences: {
-            devTools: process.env.NODE_ENV === 'development' ? true : false,
+            devTools: process.env.NODE_ENV === undefined ? true : false,
           },
         });
         const options = {

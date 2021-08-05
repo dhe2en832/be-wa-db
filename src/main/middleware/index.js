@@ -1,6 +1,8 @@
+const config = require('../../config.json');
+
 const auth = (req, res, next) => {
   let token = req.headers['x-access-token'];
-  const api_token = process.env.ACCESS_TOKEN;
+  const api_token = config.ACCESS_TOKEN;
 
   if (!token) {
     return res.status(403).send({

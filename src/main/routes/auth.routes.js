@@ -1,3 +1,5 @@
+const config = require('../../config.json');
+
 module.exports = (appExpress, body, validationResult) => {
   appExpress.post(
     '/auth/login',
@@ -13,10 +15,7 @@ module.exports = (appExpress, body, validationResult) => {
             message: 'Email atau Password Masih Kosong',
           });
         } else {
-          if (
-            req.body.email === process.env.ACCESS_ID &&
-            req.body.password === process.env.ACCESS_PWD
-          ) {
+          if (req.body.email === config.ACCESS_ID && req.body.password === config.ACCESS_PWD) {
             return res.status(200).json({
               status: true,
               response: 'Email dan Password Cocok. Login Telah Berhasil',

@@ -7,7 +7,6 @@
     "async-mutex": "^0.2.6",
     "cors": "^2.8.5",
     "custom-electron-titlebar": "^3.2.7",
-    "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "express-fileupload": "^1.2.1",
     "express-validator": "^6.11.1",
@@ -35,7 +34,7 @@
     "csa-computer"
   ],
   "build": {
-    "asar": false,
+    "asar": true,
     "appId": "id.csacomputer.wacsa",
     "copyright": "Copyright © 2021 CSA Computer x Whatsapp",
     "productName": "wacsa",
