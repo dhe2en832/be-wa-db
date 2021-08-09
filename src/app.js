@@ -157,5 +157,4 @@ app.on('window-all-closed', function () {
 app.on('before-quit', () => {
   win = null;
   createWindow = null;
-  //process.kill(process.pid, 'SIGINT');
 });
