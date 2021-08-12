@@ -3,7 +3,7 @@ const path = require('path');
 const showSVG = path.join(__dirname, './../../images/show.svg');
 const hideSVG = path.join(__dirname, './../../images/hide.svg');
 
-const login = (ipcRenderer, wrapperElm, base_url, home) => {
+function login(ipcRenderer, wrapperElm, base_url, home) {
   const pageLogin = `
     <div class="container-fluid">
       <div class="row">
@@ -89,6 +89,6 @@ const login = (ipcRenderer, wrapperElm, base_url, home) => {
 
   wrapperElm.innerHTML = pageLogin;
   scriptsLogin();
-};
+}
 
 module.exports = { login };

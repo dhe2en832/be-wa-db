@@ -12,7 +12,7 @@ const {
   appendElem,
 } = require('../../utils/stylesGenerator');
 
-const home = (ipcRenderer, wrapperElm) => {
+function home(ipcRenderer, wrapperElm) {
   const pageHome = `
   <div class="container-fluid px-3">
       <!-- loading -->
@@ -170,10 +170,25 @@ const home = (ipcRenderer, wrapperElm) => {
       setElemText('#onlineFrom', dateTimeGeneratorClient());
       setElemText('#onlineFromHidden', new Date());
     });
+
+    ipcRenderer.on('connected', () => {
+      alertDismiss(1000, 'warning');
+      const connectedCatch = alertShow('Koneksi Online, WACSA API sudah bisa digunakan.', 'success');
+      appendElem('#alertContainer', connectedCatch);
+      alertDismiss(6000, 'success');
+    });
+
+    ipcRenderer.on('timeout', () => {
+      const timeoutCatch = alertShow(
+        'Koneksi Offline, periksa koneksi pada Whatsapp di device Anda.',
+        'warning'
+      );
+      appendElem('#alertContainer', timeoutCatch);
+    });
   };
 
   wrapperElm.innerHTML = pageHome;
   scriptsHome();
-};
+}
 
 module.exports = { home };

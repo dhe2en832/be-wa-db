@@ -8,7 +8,7 @@ function messageCallback({ url, options, retry, interval }) {
       .catch((err) => {
         if (retry === 0) return reject(err);
         setTimeout(() => {
-          resolve(callbacks({ url, options, retry: retry - 1 }));
+          resolve(messageCallback({ url, options, retry: retry - 1 }));
         }, interval * 1000);
       });
   });

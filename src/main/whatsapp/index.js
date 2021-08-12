@@ -188,6 +188,15 @@ function waListener(
     }
   });
 
+  waClient.on('change_state', (newState) => {
+    if (newState === 'TIMEOUT') {
+      win.webContents.send('timeout');
+    }
+    if (newState === 'CONNECTED') {
+      win.webContents.send('connected');
+    }
+  });
+
   waClient.on('disconnected', (reason) => {
     win.webContents.send('disconnected_client');
     win.webContents.send('logs', 'Whatsapp telah terputus! Error : ' + reason);
