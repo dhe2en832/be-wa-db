@@ -32,7 +32,7 @@
     "csa-computer"
   ],
   "build": {
-    "asar": false,
+    "asar": true,
     "appId": "id.csacomputer.wacsa",
     "copyright": "Copyright © 2021 CSA Computer x Whatsapp",
     "productName": "wacsa",
