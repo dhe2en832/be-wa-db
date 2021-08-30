@@ -1,7 +1,7 @@
 const fs = require('path');
 const path = require('path');
 const ini = require('ini');
-const { app, BrowserWindow, ipcMain } = require('electron/main');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron/main');
 const { config, rootPath } = require('./main/system');
 const { appExpress, SERVER, PORT } = require('./main/server');
 const { waClient, waListener } = require('./main/whatsapp');
