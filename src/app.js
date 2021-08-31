@@ -127,7 +127,7 @@ SERVER.listen(PORT, function () {
         buttons: [],
         defaultId: 0,
         title: 'Perhatian',
-        message: 'Aplikasi WACSA ini sudah berjalan di user lain.',
+        message: 'Aplikasi WACSA ini sudah dibuka atau sedang berjalan di user lain.',
         detail: 'Jendela akan tertutup otomatis',
       };
       dialog.showMessageBox(null, options).then(() => app.quit());
