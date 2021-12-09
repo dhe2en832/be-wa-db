@@ -123,7 +123,7 @@ SERVER.listen(PORT, function () {
       });
       const options = {
         type: 'warning',
-        icon: path.resolve(app.getAppPath() + '/images/icon.ico'),
+        icon: path.resolve(app.getAppPath() + '/src/images/icon.ico'),
         buttons: [],
         defaultId: 0,
         title: 'Perhatian',
