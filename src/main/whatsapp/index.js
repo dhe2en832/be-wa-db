@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { Client } = require('whatsapp-web.js');
+const { Client, LegacySessionAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 
 const { config, rootPath } = require('../system');
@@ -33,8 +33,10 @@ const waClient = new Client({
       '--shm-size=3gb'
     ],
   },
-  session: sessionCfg,
   restartOnAuthFail: true,
+  authStrategy: new LegacySessionAuth({
+    session: sessionCfg,
+  })
 });
 
 function waListener(
