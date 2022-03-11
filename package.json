@@ -55,6 +55,7 @@
       "!**/.vscode/*",
       "!**/environment/*",
       "!**/backup/*",
+      "!**/dist_backup/*",
       "!.gitignore",
       "!backup_wacsa_old.ini",
       "!installer.nsh",
