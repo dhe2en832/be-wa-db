@@ -53,9 +53,10 @@
     },
     "files": [
       "!**/.vscode/*",
-      "!**/environment/*",
       "!**/backup/*",
       "!**/dist_backup/*",
+      "!**/environment/*",
+      "!**/node_modules/*",
       "!.gitignore",
       "!backup_wacsa_old.ini",
       "!installer.nsh",
