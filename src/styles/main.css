@@ -1,3 +1,29 @@
 body {
   font-family: Tahoma, Calibri, sans-serif;
 }
+
+.spinner-custom {
+  width: 4rem;
+  height: 4rem;
+}
+
+.img-custom {
+  height: 264px;
+  width: 264px;
+}
+
+.font-smaller {
+  font-size: smaller;
+}
+
+.font-small {
+  font-size: small;
+}
+
+.font-x-small {
+  font-size: x-small;
+}
+
+.log-custom {
+  max-height: 120px;
+}
