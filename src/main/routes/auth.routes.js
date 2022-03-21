@@ -5,7 +5,7 @@ function authRoutes(appExpress) {
   appExpress.post(
     '/auth/login',
     [body('email').notEmpty(), body('password').notEmpty()],
-    async (req, res) => {
+    (req, res) => {
       try {
         const errors = validationResult(req).formatWith(({ msg }) => {
           return msg;
