@@ -8,9 +8,9 @@ const alertShow = (messageAlert, status) => {
 };
 
 const alertDismiss = (timer, status) => {
-  window.setTimeout(function () {
+  window.setTimeout(() => {
     const alertNode = document.querySelector('.alert-' + status);
-    alertNode.querySelector('[aria-label="close alert"]').click();
+    if (alertNode !== null) alertNode.querySelector('[aria-label="close alert"]').click();
   }, timer);
 };
 
