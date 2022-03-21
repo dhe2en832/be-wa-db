@@ -1,26 +1,17 @@
 const { MessageMedia } = require('whatsapp-web.js');
 const { body, validationResult } = require('express-validator');
 const { auth } = require('../middleware');
-const { phoneNumberFormatter } = require('../../utils/phoneNumberFormatter');
+const { waState } = require('../whatsapp');
 const errorLogger = require('../logger/error-logger');
+const { phoneNumberFormatter } = require('../../utils/phoneNumberFormatter');
 
 function messageRoutes(appExpress, waClient, win) {
-  const clientState = async function () {
-    try {
-      const state = await waClient.getState();
-      return state;
-    } catch (error) {
-      errorLogger('messageRoutes #clientState' + error, win);
-      const state = 'ERROR';
-      return state;
-    }
-  };
   const checkRegisteredNumber = async function (number) {
     try {
       const isRegistered = await waClient.isRegisteredUser(number);
       return isRegistered;
     } catch (error) {
-      errorLogger('messageRoutes #checkRegisteredNumber' + error, win);
+      await errorLogger('messageRoutes #checkRegisteredNumber' + error, win);
     }
   };
 
@@ -34,7 +25,7 @@ function messageRoutes(appExpress, waClient, win) {
     [auth, body('number').notEmpty(), body('message').notEmpty()],
     async (req, res) => {
       try {
-        const isConnectedClient = await clientState();
+        const isConnectedClient = await waState(waClient, win);
         if (isConnectedClient === 'CONNECTED') {
           const errors = validationResult(req).formatWith(({ msg }) => {
             return msg;
@@ -65,8 +56,8 @@ function messageRoutes(appExpress, waClient, win) {
                 response: response,
               });
             })
-            .catch((error) => {
-              errorLogger('messageRoutes #sendMessageText' + error, win);
+            .catch(async (error) => {
+              await errorLogger('messageRoutes #sendMessageText' + error, win);
               res.status(500).json({
                 status: false,
                 response: err,
@@ -79,7 +70,7 @@ function messageRoutes(appExpress, waClient, win) {
           });
         }
       } catch (error) {
-        errorLogger('messageRoutes #appExpressSendMediaText' + error, win);
+        await errorLogger('messageRoutes #appExpressSendMediaText' + error, win);
         return res.status(400).json({
           status: false,
           message: 'WACSA API mengalami masalah. ' + error,
@@ -90,7 +81,7 @@ function messageRoutes(appExpress, waClient, win) {
 
   appExpress.post('/message/send-media', [auth, body('number').notEmpty()], async (req, res) => {
     try {
-      const isConnectedClient = await clientState();
+      const isConnectedClient = await waState(waClient, win);
       if (isConnectedClient === 'CONNECTED') {
         const errors = validationResult(req).formatWith(({ msg }) => {
           return msg;
@@ -124,8 +115,8 @@ function messageRoutes(appExpress, waClient, win) {
               response: response,
             });
           })
-          .catch((error) => {
-            errorLogger('messageRoutes #sendMessageMedia' + error, win);
+          .catch(async (error) => {
+            await errorLogger('messageRoutes #sendMessageMedia' + error, win);
             res.status(500).json({
               status: false,
               response: err,
@@ -138,7 +129,7 @@ function messageRoutes(appExpress, waClient, win) {
         });
       }
     } catch (error) {
-      errorLogger('messageRoutes #appExpressSendMediaMessage' + error, win);
+      await errorLogger('messageRoutes #appExpressSendMediaMessage' + error, win);
       return res.status(400).json({
         status: false,
         message: 'WACSA API mengalami masalah. ' + error,
