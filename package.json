@@ -1,7 +1,7 @@
 {
   "name": "wacsa",
-  "version": "0.9.3r16.4",
-  "description": "Whatsapp API Powered By CSA Computer",
+  "version": "0.9.3-rc.17",
+  "description": "Whatsapp API, Powered By CSA Computer",
   "main": "src/app.js",
   "dependencies": {
     "async-mutex": "^0.3.2",
@@ -21,19 +21,20 @@
   },
   "scripts": {
     "start": "electron .",
-    "copy": "cp ./environment/ChromeSetup.exe dist/ && cp ./environment/readme.txt dist/",
-    "build": "rm -rf dist_backup && mv dist dist_backup && electron-builder && npm run copy"
+    "copy": "cp ./environment/ChromeSetup.exe dist/ && cp ./environment/README.md dist/",
+    "build-clean": "rm -rf dist_backup && mv dist dist_backup && electron-builder && npm run copy",
+    "build": "electron-builder && npm run copy"
   },
   "author": "CSA Computer",
   "license": "MIT",
   "keywords": [
     "whatsapp-web.js",
     "electron.js",
-    "csa-computer"
+    "csacomputer.com"
   ],
   "build": {
     "asar": true,
-    "appId": "id.csacomputer.wacsa",
+    "appId": "com.csacomputer.wacsa",
     "copyright": "Copyright © 2022 CSA Computer x Whatsapp",
     "productName": "wacsa",
     "win": {
@@ -53,10 +54,10 @@
     },
     "files": [
       "!**/.vscode/*",
+      "!**/session/*",
       "!**/backup/*",
       "!**/dist_backup/*",
       "!**/environment/*",
-      "!**/node_modules/*",
       "!.gitignore",
       "!backup_wacsa_old.ini",
       "!installer.nsh",
@@ -78,6 +79,12 @@
       {
         "from": "./environment/backup",
         "to": "backup"
+      }
+    ],
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "http://127.0.0.1/wacsa_update"
       }
     ]
   }
