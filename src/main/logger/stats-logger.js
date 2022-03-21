@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { config, rootPath } = require('../system');
 
-function statsLogger(STATS_FILE_PATH, win) {
+async function statsLogger(STATS_FILE_PATH, win) {
   try {
     const statsGenerate = () => {
       const getStats = fs.readFileSync(STATS_FILE_PATH);
@@ -21,7 +21,7 @@ function statsLogger(STATS_FILE_PATH, win) {
         return statsGenerate();
       }
     }
-    errorLogger('statsLogger #generateStats' + error, win);
+    await errorLogger('statsLogger #generateStats' + error, win);
   }
 }
 
