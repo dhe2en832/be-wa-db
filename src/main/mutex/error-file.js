@@ -18,7 +18,7 @@ const errorFileHandle = (resolve, reject, dataArg, count) => {
     mutexWithTimeoutError
         .acquire()
         .then((release) => {
-            const log = 'Error At ' + dateTimeGeneratorServer() + ' => ' + dataArg + '\r\n \r\n';
+            const log = dateTimeGeneratorServer() + ' => ' + dataArg + '\r\n';
             fs.writeFile(ERROR_FILE_PATH, log, { flag: 'a' }, (err) => {
                 if (err) reject(err);
                 resolve(true);
