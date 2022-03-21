@@ -5,6 +5,7 @@ async function errorLogger(errMsg, win) {
     await new Promise((resolve, reject) => {
       errorFileHandle(resolve, reject, errMsg, 1);
     });
+    return;
   } catch (error) {
     win.webContents.send('error', error);
   }
