@@ -19,11 +19,20 @@ const waClient = new Client({
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
+      '--disable-software-rasterizer',
+      '--disable-dev-shm-usage',
+      '--disable-web-security',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu',
+      '--shm-size=3gb'
     ],
   },
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.82 Safari/537.36',
   takeoverOnConflict: true,
   takeoverTimeoutMs: 60000,
-  authTimeoutMs: 60000,
+  authTimeoutMs: 0,
   authStrategy: new LocalAuth({
     dataPath: rootPath
   })
@@ -187,20 +196,16 @@ function waListener(
   });
 
   listenerClient.on('disconnected', async (reason) => {
-    win.webContents.send('disconnected_client');
-    win.webContents.send('logs', 'Whatsapp telah terputus! Error : ' + reason);
-    listenerClient
-      .destroy()
-      .then(() => {
-        listenerClient.initialize().catch(async (error) => {
-          await errorLogger('waClient #waClientInitializeAfterDisconnected' + error, win);
-          win.webContents.send('fatal-error', err);
-        });
-      })
-      .catch(async (error) => {
-        await errorLogger('waClient #destroySessionAfterDisconnected' + error, win);
-      });
-  })
+    try {
+      win.webContents.send('disconnected_client');
+      win.webContents.send('logs', 'Whatsapp telah terputus! Error : ' + reason);
+      await listenerClient.destroy();
+      await listenerClient.initialize();
+    } catch (error) {
+      await errorLogger('waClient #destroyAndOpenSessionAfterDisconnected' + error, win);
+      win.webContents.send('fatal-error', err);
+    }
+  });
 }
 
 async function waState(listenerClient, currentWindow) {
