@@ -28,6 +28,11 @@ function appendElem(element, html) {
   beforeElem.insertAdjacentHTML('beforeend', html);
 }
 
+function isHiddenElem(element) {
+  const findElem = document.querySelector(element);
+  return window.getComputedStyle(findElem).display === 'none';
+}
+
 module.exports = {
   hideElem,
   showElem,
@@ -37,4 +42,5 @@ module.exports = {
   setElemHTML,
   setElemAttr,
   appendElem,
+  isHiddenElem,
 };
