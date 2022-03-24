@@ -1,3 +1,4 @@
+const path = require('path'); //later, put to preload.js
 const { dateTimeGeneratorClient, dateTimeGeneratorLog } = require('../../utils/dateTimeGenerator');
 const { durationGenerator } = require('../../utils/durationGenerator');
 const { alertShow, alertDismiss } = require('../../utils/alertGenerator');
@@ -10,7 +11,10 @@ const {
   setElemHTML,
   setElemAttr,
   appendElem,
+  isHiddenElem,
 } = require('../../utils/stylesGenerator');
+const resetSVG = path.join(__dirname, './../../images/reset.svg');
+const logoutSVG = path.join(__dirname, './../../images/logout.svg');
 
 function home(ipcRenderer, wrapperElm, version) {
   const pageHome = `
@@ -31,12 +35,12 @@ function home(ipcRenderer, wrapperElm, version) {
          <div class="fixed-bottom bg-light pt-3 px-3">
             <div class="d-flex fw-lighter font-smaller justify-content-between">
               <div class="d-flex">
-                <p class="me-2 text-muted">Versi WACSA:</p>
+                <p class="me-2 text-muted">Versi:</p>
                 <p id="versionTagLoad"></p>
               </div>
               <div class="d-flex">
                 <p class="me-2 text-muted">Waktu Berlalu:</p>
-                <p id="loadingCounter"></p>
+                <p id="loadingDuration">00:00:00</p>
               </div>
             </div>
          </div>
@@ -49,8 +53,8 @@ function home(ipcRenderer, wrapperElm, version) {
               <p class="h3 p-0 m-0">WACSA</p>
               <p id="versionTagQR" class="h5 fw-lighter font-small p-0 m-0"></p>
             </div>
-            <div class="d-flex flex-column justify-content-center text-center">
-                <img class="img-custom mx-auto my-2" src="" alt="Loading Whatsapp QR Code" id="qrcode" />
+            <div class="d-flex flex-column justify-content-center text-center mt-4 mb-2">
+                <img class="mx-auto mb-4" src="" alt="Loading Whatsapp QR Code" id="qrcode" />
                 <p class="fw-lighter font-smaller text-info border border-info p-1">Jika gagal saat scan QR Code dari Whatsapp pada perangkat Android/IOS Anda, lakukan restart WACSA terlebih dahulu.</p>
             </div>
             <p class="h5 p-0 m-0">Logs:</p>
@@ -73,9 +77,9 @@ function home(ipcRenderer, wrapperElm, version) {
                <p>Nomor Whatsapp : <span class="float-end" id="onlineNumber"></span></p>
                <p>Pengguna Whatsapp : <span class="float-end" id="onlineName"></span></p>
                <p>Platform Perangkat : <span class="float-end" id="onlinePlatform"></span></p>
-               <p>Versi WACSA: <span class="float-end" id="onlineVersion"></span></p>
+               <p>Versi Whatsapp API: <span class="float-end" id="onlineVersion"></span></p>
                <p>Aktif Dari : <span class="float-end" id="onlineFrom"></span></p>
-               <p>Durasi : <span class="float-end" id="onlineDuration"></span></p>
+               <p>Durasi : <span class="float-end" id="onlineDuration">00:00:00</span></p>
             </div>
          </div>
          <div class="col-md-12 my-2">
@@ -84,6 +88,10 @@ function home(ipcRenderer, wrapperElm, version) {
                <p>Pesan Masuk : <span class="float-end" id="rev_counter">0</span></p>
                <p>Pesan Keluar : <span class="float-end" id="sen_counter">0</span></p>
             </div>
+         </div>
+         <div class="d-flex fixed-bottom bg-light py-1 px-1 justify-content-between">
+            <button id="resetButton" class="btn btn-sm"><span><img src="${resetSVG}" /></span></button>
+            <button id="logoutButton" class="btn btn-sm"><span><img src="${logoutSVG}" /></span></button>
          </div>
       </div>
    </div>
@@ -94,17 +102,19 @@ function home(ipcRenderer, wrapperElm, version) {
     hideElem('#content');
     setElemText("#versionTagLoad", version);
 
-    const loggedTime = new Date();
-    const loadCounter = () => {
-      const duration = durationGenerator(loggedTime);
-      setElemText("#loadingCounter", duration);
+    let timeInterval;
+    let timeStart = new Date();
+    const timeCounter = (element) => {
+      const duration = durationGenerator(timeStart);
+      setElemText(element, duration);
     }
-    const loadInterval = setInterval(loadCounter, 1000);
+    timeInterval = setInterval(() => timeCounter('#loadingDuration'), 1000);
 
-    window.addEventListener('beforeunload', () => {
+    window.addEventListener('beforeunload', async () => {
       const totalRev = parseInt(getElemText('#rev_counter'));
       const totalSen = parseInt(getElemText('#sen_counter'));
-      ipcRenderer.send('windows-closed', [totalRev, totalSen]);
+      if (isHiddenElem('#content') === false) await ipcRenderer.send('client_disconnected', [totalRev, totalSen]);
+      ipcRenderer.send('windows-closed');
     });
 
     ipcRenderer.send('login-succeed');
@@ -139,11 +149,12 @@ function home(ipcRenderer, wrapperElm, version) {
     });
 
     ipcRenderer.on('qr_client', (event, qr) => {
-      clearInterval(loadInterval);
+      clearInterval(timeInterval);
+      setElemText('#loadingDuration', '00:00:00');
       setElemAttr('#qrcode', 'src', qr);
       hideElem('#loading');
       showElem('#app');
-      setElemText("#versionTagQR", version);
+      setElemText("#versionTagQR", "v" + version);
       hideElem('#content');
     });
 
@@ -157,14 +168,27 @@ function home(ipcRenderer, wrapperElm, version) {
     });
 
     ipcRenderer.on('authenticated_client', (event, args) => {
-      const lastTimeOnline = new Date();
-      window.setInterval(() => {
-        const duration = durationGenerator(lastTimeOnline);
-        setElemText('#onlineDuration', duration);
-      }, 1000);
+      timeStart = new Date();
+      timeInterval = setInterval(() => timeCounter('#onlineDuration', 1000));
       const authCatch = alertShow('Anda telah terhubung dengan WACSA API.', 'success');
       appendElem('#alertContainer', authCatch);
       alertDismiss(5000, 'success');
+      const resetButton = document.getElementById('resetButton');
+      const logoutButton = document.getElementById('logoutButton');
+      resetButton.addEventListener('click', async (event) => {
+        await ipcRenderer.send('client_reset');
+      });
+      logoutButton.addEventListener('click', async (event) => {
+        await ipcRenderer.send('client_logout');
+      });
+    });
+
+    ipcRenderer.on('reseted_client', (event, args) => {
+      alert(JSON.stringify(args));
+    });
+
+    ipcRenderer.on('logout_client', (event, args) => {
+      alert(JSON.stringify(args));
     });
 
     ipcRenderer.on('disconnected_client', async (event, args) => {
@@ -182,6 +206,10 @@ function home(ipcRenderer, wrapperElm, version) {
       );
       appendElem('#alertContainer', disconnectedCatch);
       alertDismiss(15000, 'danger');
+      clearInterval(timeInterval);
+      setElemText('#onlineDuration', '00:00:00');
+      timeStart = new Date();
+      timeInterval = setInterval(() => timeCounter('#loadingDuration'), 1000);
     });
 
     ipcRenderer.on('received_message', (event, data) => {
