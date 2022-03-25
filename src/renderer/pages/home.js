@@ -1,4 +1,3 @@
-const path = require('path'); //later, put to preload.js
 const { dateTimeGeneratorClient, dateTimeGeneratorLog } = require('../../utils/dateTimeGenerator');
 const { durationGenerator } = require('../../utils/durationGenerator');
 const { alertShow, alertDismiss } = require('../../utils/alertGenerator');
@@ -13,8 +12,6 @@ const {
   appendElem,
   isHiddenElem,
 } = require('../../utils/stylesGenerator');
-const resetSVG = path.join(__dirname, './../../images/reset.svg');
-const logoutSVG = path.join(__dirname, './../../images/logout.svg');
 
 function home(ipcRenderer, wrapperElm, version) {
   const pageHome = `
@@ -88,10 +85,6 @@ function home(ipcRenderer, wrapperElm, version) {
                <p>Pesan Masuk : <span class="float-end" id="rev_counter">0</span></p>
                <p>Pesan Keluar : <span class="float-end" id="sen_counter">0</span></p>
             </div>
-         </div>
-         <div class="d-flex fixed-bottom bg-light py-1 px-1 justify-content-between">
-            <button id="resetButton" class="btn btn-sm"><span><img src="${resetSVG}" /></span></button>
-            <button id="logoutButton" class="btn btn-sm"><span><img src="${logoutSVG}" /></span></button>
          </div>
       </div>
    </div>
@@ -181,14 +174,6 @@ function home(ipcRenderer, wrapperElm, version) {
       logoutButton.addEventListener('click', async (event) => {
         await ipcRenderer.send('client_logout');
       });
-    });
-
-    ipcRenderer.on('reseted_client', (event, args) => {
-      alert(JSON.stringify(args));
-    });
-
-    ipcRenderer.on('logout_client', (event, args) => {
-      alert(JSON.stringify(args));
     });
 
     ipcRenderer.on('disconnected_client', async (event, args) => {
