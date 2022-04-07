@@ -41,7 +41,7 @@ function receivedFileHandle(resolve, reject, data, mode, count) {
             const rawData = '[' + data.slice(0, -1) + ']';
             const jsonData = JSON.parse(rawData);
             resolve(jsonData);
-            if (config.BackupLog.ReceivedLogBackup === 'false') {
+            if (config.BackupLog.ReceivedLogBackup === false) {
               fs.unlink(RECEIVED_FILE_PATH, (err) => {
                 if (err) reject(err);
               });

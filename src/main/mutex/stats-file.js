@@ -66,7 +66,7 @@ const statsFileHandle = (resolve, reject, dataArg, mode, count) => {
           } else {
             const jsonData = JSON.parse(data);
             resolve(jsonData);
-            if (config.BackupLog.StatisticLogBackup === 'false') {
+            if (config.BackupLog.StatisticLogBackup === false) {
               fs.unlink(STATS_FILE_PATH, (err) => {
                 if (err) reject(err);
               });
