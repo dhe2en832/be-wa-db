@@ -57,6 +57,7 @@
       "!**/.vscode/*",
       "!**/backup/*",
       "!**/dist_backup/*",
+      "!**/docs/*",
       "!**/environment/*",
       "!**/node_modules/*",
       "!**/session/*",
