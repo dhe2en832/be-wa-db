@@ -166,14 +166,6 @@ function home(ipcRenderer, wrapperElm, version) {
       const authCatch = alertShow('Anda telah terhubung dengan WACSA API.', 'success');
       appendElem('#alertContainer', authCatch);
       alertDismiss(5000, 'success');
-      const resetButton = document.getElementById('resetButton');
-      const logoutButton = document.getElementById('logoutButton');
-      resetButton.addEventListener('click', async (event) => {
-        await ipcRenderer.send('client_reset');
-      });
-      logoutButton.addEventListener('click', async (event) => {
-        await ipcRenderer.send('client_logout');
-      });
     });
 
     ipcRenderer.on('disconnected_client', async (event, args) => {
