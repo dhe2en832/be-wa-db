@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const ini = require('ini');
 const { app, BrowserWindow, ipcMain, dialog } = require('electron/main');
-const { config, rootPath, versionTag } = require('./main/system');
+const { autoUpdater } = require('electron-updater');
+const { config, rootPath, versionTag, updateListener } = require('./main/system');
 const { appExpress, SERVER, PORT } = require('./main/server');
 const { waClient, waListener, waWorker } = require('./main/whatsapp');
 let { RECEIVED_FILE_PATH } = require('./main/mutex/received-file');
@@ -98,6 +99,8 @@ SERVER.listen(PORT, function () {
           win.webContents.send('fatal-error', error);
         }
       });
+
+      updateListener(autoUpdater, ipcMain, win, errorLogger);
     };
   }
 }).on('error', async (error) => {
