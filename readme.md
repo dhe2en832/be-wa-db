@@ -78,3 +78,6 @@ sehingga chat OTP atau history pesan akan tampil ke user
 11/04/2022 - v0.10.0
 * Peningkatan versi, dengan tujuan pembedaan dengan versi wacsa non md.
 * Penambahan folder docs untuk dokumentasi penggunaan dan development.
+
+23/04/2022 - v0.10.1
+* Update dependensi terbaru waweb.js versi 1.16.6
