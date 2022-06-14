@@ -81,3 +81,6 @@ sehingga chat OTP atau history pesan akan tampil ke user
 
 23/04/2022 - v0.10.1
 * Update dependensi terbaru waweb.js versi 1.16.6
+
+14/06/2022 - v0.10.2
+* Update dependensi terbaru waweb.js versi 1.16.7
