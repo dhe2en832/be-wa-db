@@ -32,7 +32,7 @@ const waClient = new Client({
       `--window-size=${config.ServerOptions.winSize || "800,600"}`,
     ]
   },
-  userAgent: 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
   takeoverOnConflict: true,
   takeoverTimeoutMs: 10,
   authTimeoutMs: 0,
