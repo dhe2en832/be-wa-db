@@ -1,6 +1,5 @@
 backup
-dist
-dist_backup
+dist*
 docs
 environment
 node_modules
