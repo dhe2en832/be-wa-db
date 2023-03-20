@@ -18,7 +18,6 @@ WACSA-MD merupakan aplikasi yang dapat digunakan untuk mengirim pesan via API ya
   * styles, folder kode untuk style
   * utils, folder kode untuk utilitas
   * app.js, file utama kode aplikasi
-  * config.json, file konfigurasi non runtime
   * index.html, file html untuk layout aplikasi
 * .gitignore, file untuk melakukan pengecualian git
 * dev-app-update.yml, file untuk informasi update aplikasi, saat development
@@ -27,6 +26,7 @@ WACSA-MD merupakan aplikasi yang dapat digunakan untuk mengirim pesan via API ya
 * readme.md, file dokumentasi project
 * wacsa.ini, file konfigurasi yang digunakan WACSA saat berjalan
 * yarn.lock, file kunci untuk menetapkan dependensi yang digunakan
+* .env.xxx file environment variables untuk setting key dan sebagainya.
 
 ## Fitur
 * Halaman Login
@@ -84,3 +84,6 @@ sehingga chat OTP atau history pesan akan tampil ke user
 
 14/06/2022 - v0.10.2
 * Update dependensi terbaru waweb.js versi 1.16.7
+
+20/03/2023 - v0.11.54
+* Pemindahan env dan pembuatan satu sumber kode program saja.

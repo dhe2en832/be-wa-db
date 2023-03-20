@@ -9,3 +9,4 @@ wacsa-received.json
 wacsa-sent.json
 wacsa-session.json
 wacsa-statistic.json
+.env*

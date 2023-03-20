@@ -1,6 +1,6 @@
 {
   "name": "wacsa",
-  "version": "0.11.54",
+  "version": "0.11.55",
   "description": "Whatsapp API, Powered By CSA Computer",
   "main": "src/app.js",
   "dependencies": {
@@ -14,18 +14,21 @@
     "ini": "^2.0.0",
     "node-fetch": "2.6.7",
     "qrcode": "1.5.0",
-    "whatsapp-web.js": "^1.19.4"
+    "whatsapp-web.js": "^1.19.5"
   },
   "devDependencies": {
     "electron": "12.2.2",
-    "electron-builder": "22.11.3"
+    "electron-builder": "22.11.3",
+    "env-cmd": "^10.1.0"
   },
   "scripts": {
     "start": "electron .",
+    "build": "rm -rf dist && electron-builder && npm run copy",
     "copy": "cp ./environment/ChromeSetup.exe dist/",
-    "build-clean": "rm -rf dist_backup && mv dist dist_backup && electron-builder && npm run copy",
-    "build": "electron-builder && npm run copy",
-    "clean-dist": "rm -rf dist dist_backup"
+    "dev-origin": "env-cmd -f .env.origin yarn start",
+    "prod-origin": "env-cmd -f .env.origin yarn build",
+    "prod-bless": "env-cmd -f .env.bless yarn build",
+    "prod-complete": "env-cmd -f .env.complete yarn build"
   },
   "author": "CSA Computer",
   "license": "MIT",
@@ -37,7 +40,7 @@
   "build": {
     "asar": true,
     "appId": "com.csacomputer.wacsa",
-    "copyright": "Copyright © 2022 CSA Computer x Whatsapp",
+    "copyright": "Copyright © 2023 CSA Computer x Whatsapp",
     "productName": "wacsa",
     "win": {
       "target": "nsis",
@@ -85,12 +88,6 @@
       {
         "from": "./environment/backup",
         "to": "backup"
-      }
-    ],
-    "publish": [
-      {
-        "provider": "generic",
-        "url": "http://csa1.completeselular.com:2080/wacsa-updater"
       }
     ]
   }

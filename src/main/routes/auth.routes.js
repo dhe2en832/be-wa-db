@@ -1,10 +1,9 @@
-const config = require('../../config.json');
-const { body, validationResult } = require('express-validator');
+const { body, validationResult } = require("express-validator");
 
 function authRoutes(appExpress) {
   appExpress.post(
-    '/auth/login',
-    [body('email').notEmpty(), body('password').notEmpty()],
+    "/auth/login",
+    [body("email").notEmpty(), body("password").notEmpty()],
     (req, res) => {
       try {
         const errors = validationResult(req).formatWith(({ msg }) => {
@@ -13,18 +12,21 @@ function authRoutes(appExpress) {
         if (!errors.isEmpty()) {
           return res.status(422).json({
             status: false,
-            message: 'Email atau Password Masih Kosong',
+            message: "Email atau Password Masih Kosong",
           });
         } else {
-          if (req.body.email === config.ACCESS_ID && req.body.password === config.ACCESS_PWD) {
+          if (
+            req.body.email === process.env.ACCESS_ID &&
+            req.body.password === process.env.ACCESS_PWD
+          ) {
             return res.status(200).json({
               status: true,
-              response: 'Email dan Password Cocok. Login Telah Berhasil',
+              response: "Email dan Password Cocok. Login Telah Berhasil",
             });
           } else {
             return res.status(422).json({
               status: false,
-              message: 'Email atau Password Tidak Cocok',
+              message: "Email atau Password Tidak Cocok",
             });
           }
         }

@@ -1,5 +1,9 @@
 {
   "emmet.includeLanguages": {
     "javscript": "html"
+  },
+  "files.associations": {
+    ".env": "env",
+    ".env.*": "env"
   }
 }
