@@ -23,12 +23,12 @@
   },
   "scripts": {
     "start": "electron .",
-    "build": "rm -rf dist && electron-builder && npm run copy",
+    "build": "rm -rf dist && electron-builder",
     "copy": "cp ./environment/ChromeSetup.exe dist/",
     "dev-origin": "env-cmd -f .env.origin yarn start",
     "prod-origin": "env-cmd -f .env.origin yarn build",
-    "prod-bless": "env-cmd -f .env.bless yarn build",
-    "prod-complete": "env-cmd -f .env.complete yarn build"
+    "prod-bless": "env-cmd -f .env.bless yarn build && yarn copy && rm -rf dist_bless && mv dist dist_bless",
+    "prod-complete": "env-cmd -f .env.complete yarn build && yarn copy && rm -rf dist_complete && mv dist dist_complete"
   },
   "author": "CSA Computer",
   "license": "MIT",
@@ -88,6 +88,12 @@
       {
         "from": "./environment/backup",
         "to": "backup"
+      }
+    ],
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "${env.UPDATER_URL}"
       }
     ]
   }

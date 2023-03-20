@@ -13,10 +13,6 @@ const config = ini.parse(
 const versionTag = app.getVersion();
 
 const updateListener = (autoUpdater, ipcMain, win, errorLogger) => {
-  autoUpdater.setFeedURL({
-    url: process.env.UPDATER_URL,
-    provider: "generic",
-  });
   autoUpdater.autoDownload = false;
 
   autoUpdater.on("error", async (error) => {
