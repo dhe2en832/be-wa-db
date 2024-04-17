@@ -6,7 +6,9 @@ const qrcode = require("qrcode");
 const { config, rootPath, versionTag } = require("../system");
 const errorLogger = require("../logger/error-logger");
 const statsLogger = require("../logger/stats-logger");
+const credentials = require("../../credentials.json");
 const messageCallback = require("./messageCallback");
+
 const chromePath =
   config.ServerOptions.chrome ||
   "C:/Program Files/Google/Chrome/Application/chrome.exe";
@@ -16,6 +18,7 @@ const authStrategy = new LocalAuth({
   dataPath: rootPath,
 });
 const waWorker = `${authStrategy.dataPath}/session/Default/Service Worker`;
+const wwebVersion = credentials.wwebVersion;
 const waClient = new Client({
   puppeteer: {
     executablePath: chromePath,
@@ -40,7 +43,8 @@ const waClient = new Client({
   ffmpegPath: "ffmpeg",
   authStrategy,
   webVersionCache: {
-    path: rootPath + "/.wacsa_cache",
+    type: "remote",
+    remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${wwebVersion}.html`,
   },
 });
 
