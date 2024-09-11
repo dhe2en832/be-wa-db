@@ -18,9 +18,11 @@ const authStrategy = new LocalAuth({
   dataPath: rootPath,
 });
 const waWorker = `${authStrategy.dataPath}/session/Default/Service Worker`;
-const wwebVersion = credentials.wwebVersion;
+const useWWebCache = credentials.useWWebCache;
+const wwebCacheVersion = credentials.wwebCacheVersion;
 const waClient = new Client({
   puppeteer: {
+    restartOnAuthFail: true,
     executablePath: chromePath,
     headless: config.ServerOptions.headless === false ? false : true,
     args: [
@@ -42,10 +44,12 @@ const waClient = new Client({
   qrMaxRetries: 0,
   ffmpegPath: "ffmpeg",
   authStrategy,
-  webVersionCache: {
-    type: "remote",
-    remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${wwebVersion}.html`,
-  },
+  ...(useWWebCache && {
+    webVersionCache: {
+      type: "remote",
+      remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${wwebCacheVersion}.html`,
+    },
+  }),
 });
 
 function waListener(
