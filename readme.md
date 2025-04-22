@@ -1,7 +1,12 @@
-# WACSA
+# WACSA-MD
+***
+
+## Status
+Active
 
 ## Deskripsi
 WACSA-MD merupakan aplikasi yang dapat digunakan untuk mengirim pesan via API yang terhubung dengan Whatsapp Web, terdapat juga callback untuk webhook status pesan terkirim, pesan masuk dan informasi statistik. WACSA versi Multi Device adalah sistem Whatsapp yang tidak memerlukan Whatsapp di HP harus terus terkoneksi ke internet.
+WACSA-MD ini juga sering disebut WA ENGINE dari CSA Computer.
 
 ## Struktur
 * .vscode, folder editor (tidak urgent)
@@ -38,6 +43,9 @@ WACSA-MD merupakan aplikasi yang dapat digunakan untuk mengirim pesan via API ya
 * Webhook Status Kirim Pesan
 * Multi Device Beta Support
 * Built-in Updater
+
+## Library Utama
+[https://github.com/pedroslopez/whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js)
 
 ## Log
 11/03/2022 - v0.9.3.rc.17
@@ -87,3 +95,9 @@ sehingga chat OTP atau history pesan akan tampil ke user
 
 20/03/2023 - v0.11.54
 * Pemindahan env dan pembuatan satu sumber kode program saja.
+
+2024/09/11 - v0.12.2401
+* Library utama saat ini menggunakan "whatsapp-web.js":"github:pedroslopez/whatsapp-web.js#webpack-exodus" untuk masalah version change
+
+2025/04/11 - v0.12.2427
+* Update library whataspp-web.js ke versi terbaru 1.27.0
