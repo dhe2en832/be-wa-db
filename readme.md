@@ -108,7 +108,7 @@ sehingga chat OTP atau history pesan akan tampil ke user
 2025/04/25 - v0.12.2410
 * Tambah config untuk disableReceivedLog dan disabledSentLog agar file log tidak membesar terutama received log.
 
-2026/02/07 - v0.12.2414
+2026/02/07 - v0.34.2602
 * Perbaikan kompatibilitas Electron dengan whatsapp-web.js (Puppeteer)
 * Upgrade Electron ke versi stabil 32 dan update electron-builder
 * Penyesuaian preload, contextIsolation, dan sandbox
