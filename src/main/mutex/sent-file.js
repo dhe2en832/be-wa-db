@@ -15,7 +15,11 @@ const mutexWithTimeoutSent = withTimeout(new Mutex(), timeRangeSent, new Error('
 let SENT_FILE_PATH = path.resolve(
   (config.FolderLog.SentLogFolder || rootPath) + '/wacsa-sent.json'
 );
+
+const isDisabled = config.ServerOptions.disableSentLog || false;
+
 function sentFileHandle(resolve, reject, data, mode, count) {
+  if (isDisabled) return;
   mutexWithTimeoutSent
     .acquire()
     .then((release) => {

@@ -11,5 +11,4 @@ wacsa-session.json
 wacsa-statistic.json
 .env*
 /src/credentials.json
-/src/preferences.json
 .wwebjs_cache

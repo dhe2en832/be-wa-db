@@ -43,13 +43,21 @@ SERVER.listen(PORT, function () {
         height: 640,
         frame: false,
         resizable: false,
+        // versi electron lama
+        // webPreferences: {
+        //   enableRemoteModule: true,
+        //   nodeIntegration: false,
+        //   contextIsolation: true,
+        //   devTools: app.isPackaged === false ? true : false,
+        //   preload: path.join(__dirname, "/renderer/preload.js"),
+        // },
         webPreferences: {
-          enableRemoteModule: true,
           nodeIntegration: false,
           contextIsolation: true,
-          devTools: app.isPackaged === false ? true : false,
-          preload: path.join(__dirname, "/renderer/preload.js"),
-        },
+          sandbox: false,
+          devTools: !app.isPackaged,
+          preload: path.join(__dirname, "renderer", "preload.js"),
+        }
       });
       win.loadFile(path.join(__dirname, "/index.html"));
       win.webContents.once("dom-ready", () => {
@@ -105,6 +113,14 @@ SERVER.listen(PORT, function () {
         });
       });
 
+      ipcMain.on('window-minimize', () => {
+        if (win) win.minimize();
+      });
+
+      ipcMain.on('window-close', () => {
+        if (win) win.close();
+      });
+
       ipcMain.on("login-succeed", async (event, arg) => {
         try {
           if (fs.existsSync(waWorker)) {
@@ -119,12 +135,13 @@ SERVER.listen(PORT, function () {
           win.webContents.send("fatal-error", error);
         }
       });
+
       updateListener(autoUpdater, ipcMain, win, errorLogger);
     };
   }
 }).on("error", async (error) => {
   if (error.code === "EADDRINUSE") {
-    createWindow = (win) => {
+    createWindow = () => {
       win = new BrowserWindow({
         width: 480,
         height: 480,
@@ -152,7 +169,7 @@ SERVER.listen(PORT, function () {
 });
 
 app.whenReady().then(() => {
-  createWindow(win);
+  createWindow();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

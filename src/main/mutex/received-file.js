@@ -15,7 +15,11 @@ const mutexWithTimeoutReceived = withTimeout(new Mutex(), timeRangeReceived, new
 let RECEIVED_FILE_PATH = path.resolve(
   (config.FolderLog.ReceivedLogFolder || rootPath) + '/wacsa-received.json'
 );
+
+const isDisabled = config.ServerOptions.disableReceivedLog || false;
+
 function receivedFileHandle(resolve, reject, data, mode, count) {
+  if (isDisabled) return;
   mutexWithTimeoutReceived
     .acquire()
     .then((release) => {

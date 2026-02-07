@@ -23,15 +23,18 @@ WACSA-MD ini juga sering disebut WA ENGINE dari CSA Computer.
   * styles, folder kode untuk style
   * utils, folder kode untuk utilitas
   * app.js, file utama kode aplikasi
+  * credentials.json, file yang dihasilkan dari make-credentials.json
   * index.html, file html untuk layout aplikasi
+* .env.{nama clint}, file konfigurasi per client
+* .env.origin, file konfigurasi template
 * .gitignore, file untuk melakukan pengecualian git
 * dev-app-update.yml, file untuk informasi update aplikasi, saat development
 * installer.nsh, file konfigurasi untuk mengatur kebutuhan saat membuat installer
+* make-credentials.js, file konfigurasi untuk credentials.json
 * package.json, file utama untuk mengatur versi, dependensi, command
 * readme.md, file dokumentasi project
 * wacsa.ini, file konfigurasi yang digunakan WACSA saat berjalan
 * yarn.lock, file kunci untuk menetapkan dependensi yang digunakan
-* .env.xxx file environment variables untuk setting key dan sebagainya.
 
 ## Fitur
 * Halaman Login
@@ -99,5 +102,8 @@ sehingga chat OTP atau history pesan akan tampil ke user
 2024/09/11 - v0.12.2401
 * Library utama saat ini menggunakan "whatsapp-web.js":"github:pedroslopez/whatsapp-web.js#webpack-exodus" untuk masalah version change
 
-2025/04/11 - v0.12.2427
-* Update library whataspp-web.js ke versi terbaru 1.27.0
+2025/04/11 - v0.12.2402
+* Update library whatsapp-web.js ke versi terbaru 1.27.0
+
+2025/04/25 - v0.12.2410
+* Tambah config untuk disableReceivedLog dan disabledSentLog agar file log tidak membesar terutama received log.

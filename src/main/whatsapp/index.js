@@ -64,6 +64,8 @@ function waListener(
   win.webContents.send("logs", "Sedang Menghubungkan...");
 
   listenClient.on("qr", (qr) => {
+    win.webContents.send("disconnected_client");
+
     qrcode.toDataURL(qr, (err, url) => {
       win.webContents.send("qr_client", url);
       win.webContents.send(
@@ -72,6 +74,7 @@ function waListener(
       );
     });
   });
+
 
   listenClient.on("ready", async () => {
     const stats = await statsLogger(STATS_FILE_PATH, win);
@@ -88,9 +91,27 @@ function waListener(
     win.webContents.send("authenticated_client");
   });
 
-  listenClient.on("auth_failure", (message) => {
+  listenClient.on("auth_failure", async (message) => {
     win.webContents.send("logs", message);
+    win.webContents.send("disconnected_client");
+
+    try {
+      await listenClient.destroy();
+
+      if (fs.existsSync(waWorker)) {
+        fs.rmdirSync(waWorker, { recursive: true });
+      }
+
+      await listenClient.initialize();
+    } catch (error) {
+      await errorLogger(
+        "listenClient #authFailureReinit" + error,
+        win
+      );
+      win.webContents.send("fatal-error", error);
+    }
   });
+
 
   listenClient.on("message", async (receive_msg) => {
     try {
@@ -273,8 +294,7 @@ function waState(listenClient) {
     setTimeout(
       () =>
         reject(
-          `TIMEOUT: WACSA call has exceeds ${
-            config.ServerOptions.timeout || 30
+          `TIMEOUT: WACSA call has exceeds ${config.ServerOptions.timeout || 30
           } sec.`
         ),
       (config.ServerOptions.timeout || 30) * 1000

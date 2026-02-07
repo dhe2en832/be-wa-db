@@ -1,7 +1,27 @@
 window.addEventListener('DOMContentLoaded', () => {
-  const { titleBarSys, mainSys } = window.WACSA_UI;
+  if (!window.WACSA_UI) return;
 
-  titleBarSys();
+  const btnMin = document.getElementById('btn-minimize');
+  const btnClose = document.getElementById('btn-close');
+  const versionElm = document.getElementById('app-version');
 
-  mainSys();
+  if (btnMin) {
+    btnMin.addEventListener('click', () => {
+      window.WACSA_UI.minimize();
+    });
+  }
+
+  if (btnClose) {
+    btnClose.addEventListener('click', () => {
+      window.WACSA_UI.close();
+    });
+  }
+
+  window.addEventListener('wacsa-version-ready', (e) => {
+    if (versionElm) {
+      versionElm.textContent = `v${e.detail}`;
+    }
+  });
+
+  window.WACSA_UI.init();
 });

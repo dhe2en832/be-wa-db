@@ -1,0 +1,59 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.titlebar {
+    height: 36px;
+    background: #007bff;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    -webkit-app-region: drag;
+}
+
+.titlebar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.app-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.app-title {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.titlebar-right {
+    display: flex;
+    gap: 2px;
+}
+
+.tb-btn {
+    width: 32px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+}
+
+.tb-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.tb-btn.close:hover {
+    background: #e81123;
+}
