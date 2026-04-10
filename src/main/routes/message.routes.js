@@ -120,6 +120,111 @@ function messageRoutes(
     }
   );
 
+  // Endpoint untuk resolve LID ke nomor asli
+  appExpress.post(
+    "/api/lid-lookup",
+    [auth, body("lid").notEmpty()],
+    async (req, res) => {
+      try {
+        const isConnectedClient = await waState(waClient);
+        if (isConnectedClient === "CONNECTED") {
+          const errors = validationResult(req).formatWith(({ msg }) => {
+            return msg;
+          });
+
+          if (!errors.isEmpty()) {
+            return res.status(400).json({
+              success: false,
+              message: "LID tidak boleh kosong",
+            });
+          }
+
+          const lid = req.body.lid;
+          
+          // Validate LID format
+          if (!lid.endsWith('@lid')) {
+            return res.status(400).json({
+              success: false,
+              message: "Format LID tidak valid (harus diakhiri dengan @lid)",
+            });
+          }
+
+          try {
+            // Get contact by LID
+            const contact = await waClient.getContactById(lid);
+            
+            if (!contact) {
+              return res.status(404).json({
+                success: false,
+                message: "Contact tidak ditemukan untuk LID ini",
+              });
+            }
+
+            // Extract real phone number
+            // Try multiple fields to get the real number
+            let realNumber = null;
+            
+            if (contact.id && contact.id.user) {
+              realNumber = contact.id.user;
+            } else if (contact.number) {
+              realNumber = contact.number;
+            } else if (contact.id && contact.id._serialized) {
+              // Extract from serialized format (e.g., "6281234567890@c.us")
+              const serialized = contact.id._serialized;
+              if (serialized.includes('@c.us')) {
+                realNumber = serialized.replace('@c.us', '');
+              }
+            }
+
+            if (!realNumber) {
+              return res.status(404).json({
+                success: false,
+                message: "Tidak dapat mengekstrak nomor telepon dari contact",
+              });
+            }
+
+            // Get server number from config to validate
+            const serverNumber = config?.ServerWA?.Number || '';
+            
+            // Don't return server number
+            if (serverNumber && realNumber === serverNumber) {
+              return res.status(400).json({
+                success: false,
+                message: "LID ter-resolve ke nomor server (invalid)",
+              });
+            }
+
+            return res.status(200).json({
+              success: true,
+              phone: realNumber,
+              name: contact.name || contact.pushname || null,
+              isGroup: contact.isGroup || false,
+            });
+
+          } catch (contactError) {
+            await errorLogger("messageRoutes #lidLookupGetContact" + contactError, win);
+            return res.status(500).json({
+              success: false,
+              message: "Gagal mengambil data contact: " + contactError.message,
+            });
+          }
+
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: "WACSA belum diinisialisasi atau belum terhubung",
+          });
+        }
+      } catch (error) {
+        await errorLogger("messageRoutes #lidLookup" + error, win);
+        return res.status(500).json({
+          success: false,
+          message: "WACSA API mengalami masalah: " + error.message,
+        });
+      }
+    }
+  );
+
   appExpress.post(
     "/message/send-media",
     [auth, body("number").notEmpty()],
