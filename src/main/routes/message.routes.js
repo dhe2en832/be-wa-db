@@ -84,23 +84,121 @@ function messageRoutes(
             });
           }
           const message = req.body.message;
+          const quotedMessageId = req.body.quotedMessageId; // Optional: for reply/quoted message
 
-          waClient
-            .sendMessage(number, message)
-            .then((response) => {
-              res.status(200).json({
-                status: true,
-                response: response,
+          // console.log("[Reply Debug] quotedMessageId:", quotedMessageId);
+          // console.log("[Reply Debug] Has quotedMessageId:", !!quotedMessageId);
+
+          // If quotedMessageId is provided, send as reply (quoted message)
+          if (quotedMessageId) {
+            // console.log("[Reply] Attempting to send quoted message with ID:", quotedMessageId);
+            try {
+              // Extract _serialized string if quotedMessageId is an object
+              let messageId = quotedMessageId;
+              if (typeof quotedMessageId === 'object' && quotedMessageId._serialized) {
+                messageId = quotedMessageId._serialized;
+                // console.log("[Reply] Extracted _serialized:", messageId);
+              }
+              
+              // Get the message to reply to
+              // console.log("[Reply] Getting message by ID:", messageId);
+              const quotedMsg = await waClient.getMessageById(messageId);
+              // console.log("[Reply] Got quoted message:", quotedMsg ? "SUCCESS" : "NULL");
+              if (quotedMsg) {
+                // Send reply using message.reply()
+                quotedMsg
+                  .reply(message)
+                  .then(async (response) => {
+                    // console.log("[Reply] Message sent successfully");
+                    // console.log("[Reply] Response hasQuotedMsg:", response.hasQuotedMsg);
+                    
+                    // Ensure quotedMsg data is included in response for database storage
+                    if (response.hasQuotedMsg && !response.quotedMsg) {
+                      try {
+                        const qmMsg = await response.getQuotedMessage();
+                        const qmMedia = qmMsg.hasMedia ? await qmMsg.downloadMedia() : null;
+                        response.quotedMsg = {
+                          qm_body: qmMsg,
+                          body: qmMsg.body || "",
+                          sender: qmMsg._data?.notifyName || "You",
+                          qm_base64: qmMedia ? qmMedia.data : "-"
+                        };
+                        // console.log("[Reply] Added quotedMsg to response");
+                      } catch (e) {
+                        // console.log("[Reply] Error adding quotedMsg:", e.message);
+                      }
+                    }
+                    
+                    res.status(200).json({
+                      status: true,
+                      response: response,
+                    });
+                    return saveToSentLog(response, req);
+                  })
+                  .catch(async (error) => {
+                    await errorLogger("messageRoutes #sendQuotedMessage" + error, win);
+                    res.status(500).json({
+                      status: false,
+                      response: error,
+                    });
+                  });
+              } else {
+                // Quoted message not found, send as normal message
+                waClient
+                  .sendMessage(number, message)
+                  .then((response) => {
+                    res.status(200).json({
+                      status: true,
+                      response: response,
+                    });
+                    return saveToSentLog(response, req);
+                  })
+                  .catch(async (error) => {
+                    await errorLogger("messageRoutes #sendMessageText" + error, win);
+                    res.status(500).json({
+                      status: false,
+                      response: error,
+                    });
+                  });
+              }
+            } catch (error) {
+              // Error getting quoted message, send as normal message
+              waClient
+                .sendMessage(number, message)
+                .then((response) => {
+                  res.status(200).json({
+                    status: true,
+                    response: response,
+                  });
+                  return saveToSentLog(response, req);
+                })
+                .catch(async (error) => {
+                  await errorLogger("messageRoutes #sendMessageText" + error, win);
+                  res.status(500).json({
+                    status: false,
+                    response: error,
+                  });
+                });
+            }
+          } else {
+            // Normal message (no reply)
+            waClient
+              .sendMessage(number, message)
+              .then((response) => {
+                res.status(200).json({
+                  status: true,
+                  response: response,
+                });
+                return saveToSentLog(response, req);
+              })
+              .catch(async (error) => {
+                await errorLogger("messageRoutes #sendMessageText" + error, win);
+                res.status(500).json({
+                  status: false,
+                  response: error,
+                });
               });
-              return saveToSentLog(response, req);
-            })
-            .catch(async (error) => {
-              await errorLogger("messageRoutes #sendMessageText" + error, win);
-              res.status(500).json({
-                status: false,
-                response: error,
-              });
-            });
+          }
         } else {
           return res.status(400).json({
             status: false,
