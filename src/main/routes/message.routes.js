@@ -182,9 +182,22 @@ function messageRoutes(
             }
           } else {
             // Normal message (no reply)
+            // Check if this is a forwarded message
+            const isForwarded = req.body.isForwarded || false;
+            const options = isForwarded ? { isForwarded: true } : {};
+            
             waClient
-              .sendMessage(number, message)
+              .sendMessage(number, message, options)
               .then((response) => {
+                // Add isForwarded flag to response for database storage
+                if (isForwarded) {
+                  response.isForwarded = true;
+                  // Also set in _data for database storage
+                  if (response._data) {
+                    response._data.isForwarded = true;
+                  }
+                }
+                
                 res.status(200).json({
                   status: true,
                   response: response,
