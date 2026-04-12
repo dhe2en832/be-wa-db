@@ -75,13 +75,17 @@ function messageRoutes(
             });
           }
 
-          const number = phoneNumberFormatter(req.body.number);
-          const isRegisteredNumber = await checkRegisteredNumber(number);
-          if (!isRegisteredNumber) {
-            return res.status(422).json({
-              status: false,
-              message: "Nomor Whatsapp tidak terdaftar",
-            });
+          const rawNumber = req.body.number;
+          const isGroupJid = typeof rawNumber === 'string' && (rawNumber.endsWith('@g.us') || rawNumber.endsWith('@broadcast'));
+          const number = isGroupJid ? rawNumber : phoneNumberFormatter(rawNumber);
+          if (!isGroupJid) {
+            const isRegisteredNumber = await checkRegisteredNumber(number);
+            if (!isRegisteredNumber) {
+              return res.status(422).json({
+                status: false,
+                message: "Nomor Whatsapp tidak terdaftar",
+              });
+            }
           }
           const message = req.body.message;
           const quotedMessageId = req.body.quotedMessageId; // Optional: for reply/quoted message
@@ -252,11 +256,11 @@ function messageRoutes(
 
           const lid = req.body.lid;
           
-          // Validate LID format
-          if (!lid.endsWith('@lid')) {
+          // Validate LID format — accept both @lid and @g.us (groups)
+          if (!lid.endsWith('@lid') && !lid.endsWith('@g.us') && !lid.endsWith('@broadcast')) {
             return res.status(400).json({
               success: false,
-              message: "Format LID tidak valid (harus diakhiri dengan @lid)",
+              message: "Format LID tidak valid (harus diakhiri dengan @lid, @g.us, atau @broadcast)",
             });
           }
 
@@ -354,13 +358,17 @@ function messageRoutes(
             });
           }
 
-          const number = phoneNumberFormatter(req.body.number);
-          const isRegisteredNumber = await checkRegisteredNumber(number);
-          if (!isRegisteredNumber) {
-            return res.status(422).json({
-              status: false,
-              message: "Nomor Whatsapp tidak terdaftar",
-            });
+          const rawNumber = req.body.number;
+          const isGroupJid = typeof rawNumber === 'string' && (rawNumber.endsWith('@g.us') || rawNumber.endsWith('@broadcast'));
+          const number = isGroupJid ? rawNumber : phoneNumberFormatter(rawNumber);
+          if (!isGroupJid) {
+            const isRegisteredNumber = await checkRegisteredNumber(number);
+            if (!isRegisteredNumber) {
+              return res.status(422).json({
+                status: false,
+                message: "Nomor Whatsapp tidak terdaftar",
+              });
+            }
           }
 
           const caption = req.body.message;
