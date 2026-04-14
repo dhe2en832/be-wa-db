@@ -114,3 +114,13 @@ sehingga chat OTP atau history pesan akan tampil ke user
 * Penyesuaian preload, contextIsolation, dan sandbox
 * Penggantian custom-electron-titlebar ke native titlebar
 * Perbaikan flow logout dan relogin WhatsApp Linked Devices
+
+2026/04/14 - v0.35.260414
+* Perbaiki: SyntaxError saat wacsa-statistic.json kosong — tambah try/catch di stats-file.js
+* Perbaiki: label "Versi" di home page menampilkan URL server — perbaikan parameter fungsi home()
+* Perbaiki: ENOENT credentials.json saat dijalankan dari exe — credentials.json dibuat otomatis di rootPath saat pertama kali app jalan, tidak lagi di-ship dalam installer
+* Perbaiki: komentar di wacsa.ini terhapus saat login — updateAuthKeyValue() kini pakai regex replace pada raw string, bukan ini.stringify()
+* Fitur: AuthKeyValue di wacsa.ini otomatis diupdate dengan token baru setiap user login
+* Fitur: useWWebCache dan wwebCacheVersion tetap dibaca dari credentials.json dalam asar (tidak dipindah ke wacsa.ini)
+* Sistem: format versi package.json harus semver 3 bagian (MAJOR.MINOR.PATCH) agar electron-updater tidak error
+
