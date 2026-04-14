@@ -573,7 +573,7 @@ class DynamicChangelogGenerator {
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 
-                // First priority: USE_BRWDEF line (more flexible pattern)
+// First priority: USE_BRWDEF line (more flexible pattern) // [20260414_143712]
                 if (line.includes('USE_BRWDEF') && line.includes(':')) {
                     // Remove existing timestamp comment if present
                     const cleanedLine = lines[i].replace(/\/\/ \[\d{8}_\d{6}\]$/, '').trim();

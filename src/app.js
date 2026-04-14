@@ -11,6 +11,7 @@ const {
 } = require("./main/system");
 const { appExpress, SERVER, PORT } = require("./main/server");
 const { waClient, waListener, waWorker } = require("./main/whatsapp");
+const authService = require("./main/services/auth.service");
 let { RECEIVED_FILE_PATH } = require("./main/mutex/received-file");
 let { SENT_FILE_PATH } = require("./main/mutex/sent-file");
 let { STATS_FILE_PATH } = require("./main/mutex/stats-file");
@@ -178,16 +179,30 @@ app.whenReady().then(() => {
   });
 });
 
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
-});
+let isQuitting = false;
 
-app.on("before-quit", async () => {
-  try {
-    await waClient.destroy();
+app.on("window-all-closed", async () => {
+  if (isQuitting) return;
+  isQuitting = true;
+  
+  if (process.platform !== "darwin") {
+    try {
+      // Call logout API when window is closed (X button)
+      // console.log("[APP] Window closing, calling logout...");
+      await authService.logout();
+      // console.log("[APP] Logout completed");
+    } catch (error) {
+      console.error("[APP] Error during logout:", error);
+    }
+    
+    try {
+      await waClient.destroy();
+    } catch (error) {
+      console.error("[APP] Error destroying WA client:", error);
+    }
+    
     win = null;
     createWindow = null;
-  } catch (error) {
-    await errorLogger("electron #beforeQuit" + error);
+    app.quit();
   }
 });

@@ -74,14 +74,19 @@ function login(ipcRenderer, wrapperElm, base_url, version, icons, home) {
           .then((res) => res.json())
           .then((resJson) => {
             if (resJson.status === true) {
-              alertContainer.innerHTML = alertShow(resJson.response, 'success');
+              alertContainer.innerHTML = alertShow(resJson.message, 'success');
               alertDismiss(alertTimeout, 'success');
-              localStorage.setItem('sessionID', Date.now());
-              home(ipcRenderer, wrapperElm, version);
+              // Token sudah disimpan di credentials.json oleh auth service
+              // Tidak perlu session management, langsung ke home
+              home(ipcRenderer, wrapperElm, base_url, version);
             } else {
               alertContainer.innerHTML = alertShow(resJson.message, 'danger');
               alertDismiss(alertTimeout, 'danger');
             }
+          })
+          .catch((error) => {
+            alertContainer.innerHTML = alertShow('Login failed: ' + error.message, 'danger');
+            alertDismiss(alertTimeout, 'danger');
           });
       }
     });

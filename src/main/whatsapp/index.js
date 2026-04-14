@@ -6,8 +6,10 @@ const qrcode = require("qrcode");
 const { config, rootPath, versionTag } = require("../system");
 const errorLogger = require("../logger/error-logger");
 const statsLogger = require("../logger/stats-logger");
-const credentials = require("../../credentials.json");
 const messageCallback = require("./messageCallback");
+
+// useWWebCache dan wwebCacheVersion dibaca dari bundled credentials.json (dalam asar)
+const credentials = require("../../credentials.json");
 
 const chromePath =
   config.ServerOptions.chrome ||

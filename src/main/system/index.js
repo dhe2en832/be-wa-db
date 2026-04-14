@@ -12,6 +12,17 @@ const config = ini.parse(
 );
 const versionTag = app.getVersion();
 
+// Buat credentials.json di rootPath jika belum ada (tidak di-ship dalam installer)
+const credentialsPath = path.resolve(rootPath + "/credentials.json");
+if (!fs.existsSync(credentialsPath)) {
+  fs.writeFileSync(credentialsPath, JSON.stringify({
+    token: "",
+    id: "",
+    password: "",
+    sessionid: ""
+  }, null, 2));
+}
+
 const updateListener = (autoUpdater, ipcMain, win, errorLogger) => {
   autoUpdater.autoDownload = false;
 

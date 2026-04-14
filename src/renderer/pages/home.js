@@ -13,7 +13,7 @@ const {
   isHiddenElem,
 } = require('../../utils/stylesGenerator');
 
-function home(ipcRenderer, wrapperElm, version) {
+function home(ipcRenderer, wrapperElm, base_url, version) {
   const pageHome = `
   <div class="container-fluid px-3">
       <!-- loading -->

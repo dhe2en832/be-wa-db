@@ -25,11 +25,10 @@ contextBridge.exposeInMainWorld('WACSA_UI', {
         })
       );
 
-      if (JSON.parse(localStorage.getItem('sessionID'))) {
-        home(ipcRenderer, wrapperElm, version);
-      } else {
-        login(ipcRenderer, wrapperElm, base_url, version, icons, home);
-      }
+      // Simple flow: login first, then home
+      // Token disimpan di credentials.json oleh auth service
+      // Tidak ada session management
+      login(ipcRenderer, wrapperElm, base_url, version, icons, home);
     });
   },
 

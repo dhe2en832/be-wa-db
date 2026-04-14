@@ -26,7 +26,12 @@ const statsFileHandle = (resolve, reject, dataArg, mode, count) => {
             if (err) {
               reject(err);
             } else {
-              let datas = JSON.parse(data);
+              let datas;
+              try {
+                datas = JSON.parse(data);
+              } catch (e) {
+                datas = { totalReceived: 0, totalSent: 0, createdAt: null, createdAtUnformat: null, updatedAt: null, updatedAtUnformat: null };
+              }
               datas.totalReceived = dataArg[0];
               datas.totalSent = dataArg[1];
               datas.updatedAt = dateTimeGeneratorServer();
@@ -64,7 +69,12 @@ const statsFileHandle = (resolve, reject, dataArg, mode, count) => {
           if (err) {
             reject(err);
           } else {
-            const jsonData = JSON.parse(data);
+            let jsonData;
+            try {
+              jsonData = JSON.parse(data);
+            } catch (e) {
+              jsonData = { totalReceived: 0, totalSent: 0, createdAt: null, createdAtUnformat: null, updatedAt: null, updatedAtUnformat: null };
+            }
             resolve(jsonData);
             if (config.BackupLog.StatisticLogBackup === false) {
               fs.unlink(STATS_FILE_PATH, (err) => {
