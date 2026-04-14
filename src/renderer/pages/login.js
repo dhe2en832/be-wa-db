@@ -12,7 +12,7 @@ function login(ipcRenderer, wrapperElm, base_url, version, icons, home) {
               <form class="form-group">
                   <img class="mb-4" src="./images/icon.ico" alt="CSA-Logo" width="72" height="72" />
                   <h1 class="h3 mb-4 font-weight-normal">Login Prompt</h1>
-                  <input type="email" id="inputEmail" class="form-control mb-2" placeholder="Email" required autofocus />
+                  <input type="email" id="inputEmail" class="form-control mb-2" placeholder="User ID" required autofocus />
                   <div class="input-group" id="showHidePassword">
                     <input class="form-control" type="password" id="inputPassword" placeholder="Password" required />
                     <span class="input-group-text text-decoration-none"><img src="${icons.hideSVG}" class="hidePassword" aria-hidden="true"></img></span>
