@@ -76,6 +76,12 @@ function login(ipcRenderer, wrapperElm, base_url, version, icons, home) {
             if (resJson.status === true) {
               alertContainer.innerHTML = alertShow(resJson.message, 'success');
               alertDismiss(alertTimeout, 'success');
+              // Simpan credentials via IPC — hanya main process yang boleh tulis ke credentials.json
+              ipcRenderer.send('save-credentials', {
+                token: resJson.sessionKey,
+                id: emailElm.value,
+                sessionid: resJson.sessionID || '',
+              });
               home(ipcRenderer, wrapperElm, base_url, version, resJson.sessionKey || '');
             } else {
               alertContainer.innerHTML = alertShow(resJson.message, 'danger');

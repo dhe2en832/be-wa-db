@@ -22,7 +22,6 @@ function authRoutes(appExpress) {
           email: req.body.email,
           password: req.body.password,
         });
-
         if (result.success) {
           return res.status(200).json({
             status: true,
@@ -47,6 +46,26 @@ function authRoutes(appExpress) {
       }
     }
   );
+
+  // Endpoint untuk mengambil token aktif (read-only, tidak mengubah credentials)
+  appExpress.get("/auth/token", async (req, res) => {
+    try {
+      const fs = require("fs");
+      const path = require("path");
+      const { rootPath } = require("../system");
+      const credPath = path.resolve(rootPath + "/credentials.json");
+      if (!fs.existsSync(credPath)) {
+        return res.status(404).json({ status: false, message: "Token belum tersedia" });
+      }
+      const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
+      if (!creds.token) {
+        return res.status(404).json({ status: false, message: "Token belum tersedia" });
+      }
+      return res.status(200).json({ status: true, token: creds.token });
+    } catch (error) {
+      return res.status(500).json({ status: false, message: error.message });
+    }
+  });
 
   // Logout endpoint
   appExpress.post("/auth/logout", async (req, res) => {

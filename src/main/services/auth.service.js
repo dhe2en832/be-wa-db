@@ -29,8 +29,18 @@ async function login(credentials) {
   const loginEndpoint = authConfig.LoginEndpoint;
 
   // credentials.json di luar asar: rootPath/credentials.json (folder instalasi)
-  // fallback ke dalam asar jika belum ada
   const credentialsPath = path.resolve(rootPath + "/credentials.json");
+
+  // Baca credentials yang ada
+  let existingCreds = {};
+  if (fs.existsSync(credentialsPath)) {
+    try { existingCreds = JSON.parse(fs.readFileSync(credentialsPath, "utf8")); } catch(e) {}
+  }
+
+  // Cek apakah ini login dari wacsa-md2 sendiri:
+  // pakai field localUser — hanya diisi saat login dari wacsa-md2 UI
+  // Jika localUser kosong atau sama dengan email yang login → isLocalLogin
+  const isLocalLogin = !existingCreds.localUser || existingCreds.localUser === email;
 
   // If no external API configured, fall back to local credentials
   if (!loginEndpoint) {
@@ -103,19 +113,9 @@ async function login(credentials) {
     // Trim siteID (webcsa-v2 sometimes has trailing spaces)
     const siteID = (responseBody?.onsuccess?.csiteid || "1").trim();
 
-    // SAVE TOKEN & SESSION KE CREDENTIALS.JSON di folder instalasi
-    // Juga disimpan untuk logout (perlu secretkey dan sessionid)
-    let creds = {};
-    if (fs.existsSync(credentialsPath)) {
-      creds = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
-    }
-    creds.token = sessionKey;
-    creds.id = email;
-    creds.sessionid = sessionID; // Save for logout
-    fs.writeFileSync(credentialsPath, JSON.stringify(creds, null, 2));
-
-    // Update AuthKeyValue in wacsa.ini so callbacks use the new token
-    updateAuthKeyValue(sessionKey);
+    // credentials.json TIDAK ditulis dari sini — hanya ditulis via IPC 'save-credentials'
+    // yang dipanggil dari renderer saat login dari wacsa-md2 UI
+    console.log("[AUTH] Login success for:", email);
 
     return {
       sessionKey,
@@ -134,7 +134,8 @@ async function login(credentials) {
   }
 }
 
-async function logout() {
+async function logout(options = {}) {
+  const { isLocalLogout = false } = options;
   const authConfig = config.AuthAPI || {};
   const logoutEndpoint = authConfig.LogoutEndpoint;
 
@@ -151,10 +152,11 @@ async function logout() {
   const sessionid = creds.sessionid;
 
   if (!logoutEndpoint || !secretkey || !xuser) {
-    // Still clear local credentials even if API call not possible
-    if (fs.existsSync(credentialsPath)) {
+    if (isLocalLogout && fs.existsSync(credentialsPath)) {
       const clearedCreds = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
       clearedCreds.token = "";
+      clearedCreds.id = "";
+      clearedCreds.localUser = "";
       clearedCreds.sessionid = "";
       fs.writeFileSync(credentialsPath, JSON.stringify(clearedCreds, null, 2));
     }
@@ -162,14 +164,6 @@ async function logout() {
   }
 
   try {
-    // console.log("[LOGOUT] Calling endpoint:", logoutEndpoint);
-    // console.log("[LOGOUT] With headers:", { "x-user": xuser, "secretkey": secretkey ? "***" : "missing", "sessionid": sessionid ? "***" : "missing" });
-
-    // console.log("[LOGOUT] Headers being sent:");
-    // console.log("  x-user:", xuser);
-    // console.log("  secretkey:", secretkey ? secretkey.substring(0, 10) + "..." : "MISSING");
-    // console.log("  sessionid:", sessionid ? sessionid.substring(0, 10) + "..." : "MISSING");
-
     const response = await fetch(logoutEndpoint, {
       method: "POST",
       headers: {
@@ -181,10 +175,7 @@ async function logout() {
       body: JSON.stringify({ action: "logout" }),
     });
 
-    // console.log("[LOGOUT] Response status:", response.status);
     const responseText = await response.text();
-    // console.log("[LOGOUT] Response text:", responseText);
-    
     let responseBody;
     try {
       responseBody = JSON.parse(responseText);
@@ -192,10 +183,12 @@ async function logout() {
       responseBody = { result: false, onfail: { cerror: "Invalid JSON response: " + responseText } };
     }
 
-    // Clear credentials regardless of API response
-    if (fs.existsSync(credentialsPath)) {
+    // Hanya tulis ke credentials.json jika logout dari wacsa-md2 sendiri
+    if (isLocalLogout && fs.existsSync(credentialsPath)) {
       const clearedCreds = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
       clearedCreds.token = "";
+      clearedCreds.id = "";
+      clearedCreds.localUser = "";
       clearedCreds.sessionid = "";
       fs.writeFileSync(credentialsPath, JSON.stringify(clearedCreds, null, 2));
     }
@@ -207,10 +200,11 @@ async function logout() {
       return { success: false, message: errorMsg };
     }
   } catch (error) {
-    // Clear credentials on error too
-    if (fs.existsSync(credentialsPath)) {
+    if (isLocalLogout && fs.existsSync(credentialsPath)) {
       const clearedCreds = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
       clearedCreds.token = "";
+      clearedCreds.id = "";
+      clearedCreds.localUser = "";
       clearedCreds.sessionid = "";
       fs.writeFileSync(credentialsPath, JSON.stringify(clearedCreds, null, 2));
     }
@@ -218,4 +212,4 @@ async function logout() {
   }
 }
 
-module.exports = { login, logout };
+module.exports = { login, logout, updateAuthKeyValue };

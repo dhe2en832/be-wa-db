@@ -19,7 +19,8 @@ if (!fs.existsSync(credentialsPath)) {
     token: "",
     id: "",
     password: "",
-    sessionid: ""
+    sessionid: "",
+    localUser: ""
   }, null, 2));
 }
 

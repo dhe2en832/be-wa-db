@@ -137,6 +137,25 @@ SERVER.listen(PORT, function () {
         }
       });
 
+      ipcMain.on("save-credentials", (event, { token, id, sessionid }) => {
+        try {
+          const credPath = path.resolve(rootPath + "/credentials.json");
+          let creds = {};
+          if (fs.existsSync(credPath)) {
+            creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
+          }
+          creds.token = token;
+          creds.id = id;
+          creds.localUser = id;
+          creds.sessionid = sessionid || "";
+          fs.writeFileSync(credPath, JSON.stringify(creds, null, 2));
+          authService.updateAuthKeyValue(token);
+          console.log("[APP] Credentials saved from local login, token:", token);
+        } catch (error) {
+          console.error("[APP] Failed to save credentials:", error);
+        }
+      });
+
       updateListener(autoUpdater, ipcMain, win, errorLogger);
     };
   }
@@ -189,7 +208,7 @@ app.on("window-all-closed", async () => {
     try {
       // Call logout API when window is closed (X button)
       // console.log("[APP] Window closing, calling logout...");
-      await authService.logout();
+      await authService.logout({ isLocalLogout: true });
       // console.log("[APP] Logout completed");
     } catch (error) {
       console.error("[APP] Error during logout:", error);
