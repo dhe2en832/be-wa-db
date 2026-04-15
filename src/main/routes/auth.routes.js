@@ -67,11 +67,11 @@ function authRoutes(appExpress) {
     }
   });
 
-  // Logout endpoint
+  // Logout endpoint — dipanggil dari client eksternal (wacsa-ui, dll)
+  // isLocalLogout selalu false dari sini — tidak boleh mengosongkan credentials
   appExpress.post("/auth/logout", async (req, res) => {
     try {
-      const sessionData = req.body;
-      const result = await authService.logout(sessionData);
+      const result = await authService.logout({ isLocalLogout: false });
       return res.status(200).json(result);
     } catch (error) {
       return res.status(500).json({
