@@ -13,7 +13,7 @@ const {
   isHiddenElem,
 } = require('../../utils/stylesGenerator');
 
-function home(ipcRenderer, wrapperElm, base_url, version) {
+function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '') {
   const pageHome = `
   <div class="container-fluid px-3">
       <!-- loading -->
@@ -77,6 +77,11 @@ function home(ipcRenderer, wrapperElm, base_url, version) {
                <p>Versi Whatsapp API: <span class="float-end" id="onlineVersion"></span></p>
                <p>Aktif Dari : <span class="float-end" id="onlineFrom"></span></p>
                <p>Durasi : <span class="float-end" id="onlineDuration">00:00:00</span></p>
+               <div class="d-flex align-items-center border border-danger rounded px-2 py-1 mt-1">
+                 <span class="text-muted me-2" style="white-space:nowrap;font-size:0.85rem;">Secret Key :</span>
+                 <span id="onlineSecretKey" class="flex-grow-1 text-truncate font-monospace" style="font-size:0.85rem;"></span>
+                 <button id="btnCopySecretKey" class="btn btn-sm btn-outline-danger ms-2 py-0 px-2" style="font-size:0.8rem;">cop</button>
+               </div>
             </div>
          </div>
          <div class="col-md-12 my-2">
@@ -94,6 +99,21 @@ function home(ipcRenderer, wrapperElm, base_url, version) {
     hideElem('#app');
     hideElem('#content');
     setElemText("#versionTagLoad", version);
+
+    // Isi secret key dan bind tombol copy
+    setElemText('#onlineSecretKey', secretKey);
+    document.querySelector('#btnCopySecretKey').addEventListener('click', () => {
+      if (!secretKey) return;
+      navigator.clipboard.writeText(secretKey).then(() => {
+        const btn = document.querySelector('#btnCopySecretKey');
+        btn.textContent = '✓';
+        btn.classList.replace('btn-outline-danger', 'btn-success');
+        setTimeout(() => {
+          btn.textContent = 'cop';
+          btn.classList.replace('btn-success', 'btn-outline-danger');
+        }, 1500);
+      });
+    });
 
     let timeInterval;
     let timeStart = new Date();

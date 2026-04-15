@@ -76,9 +76,7 @@ function login(ipcRenderer, wrapperElm, base_url, version, icons, home) {
             if (resJson.status === true) {
               alertContainer.innerHTML = alertShow(resJson.message, 'success');
               alertDismiss(alertTimeout, 'success');
-              // Token sudah disimpan di credentials.json oleh auth service
-              // Tidak perlu session management, langsung ke home
-              home(ipcRenderer, wrapperElm, base_url, version);
+              home(ipcRenderer, wrapperElm, base_url, version, resJson.sessionKey || '');
             } else {
               alertContainer.innerHTML = alertShow(resJson.message, 'danger');
               alertDismiss(alertTimeout, 'danger');
