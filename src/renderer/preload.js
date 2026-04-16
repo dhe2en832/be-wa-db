@@ -14,7 +14,7 @@ contextBridge.exposeInMainWorld('WACSA_UI', {
     const icons = { showSVG, hideSVG };
     const wrapperElm = document.querySelector('main');
 
-    ipcRenderer.on('dom-loaded', (_, { port, version }) => {
+    ipcRenderer.on('dom-loaded', (_, { port, version, sessionConfig }) => {
       updaterCustom(ipcRenderer, updateSVG, restartSVG);
 
       const base_url = 'http://localhost:' + port;
@@ -25,10 +25,7 @@ contextBridge.exposeInMainWorld('WACSA_UI', {
         })
       );
 
-      // Simple flow: login first, then home
-      // Token disimpan di credentials.json oleh auth service
-      // Tidak ada session management
-      login(ipcRenderer, wrapperElm, base_url, version, icons, home);
+      login(ipcRenderer, wrapperElm, base_url, version, icons, home, sessionConfig || {});
     });
   },
 

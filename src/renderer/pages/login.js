@@ -1,7 +1,7 @@
 const { alertShow, alertDismiss } = require('../../utils/alertGenerator');
 const { setElemText } = require('../../utils/stylesGenerator');
 
-function login(ipcRenderer, wrapperElm, base_url, version, icons, home) {
+function login(ipcRenderer, wrapperElm, base_url, version, icons, home, sessionConfig = {}, expiredMessage = null) {
   const pageLogin = `
     <div class="container-fluid">
       <div class="row">
@@ -35,6 +35,16 @@ function login(ipcRenderer, wrapperElm, base_url, version, icons, home) {
 
   const scriptsLogin = () => {
     setElemText('#versionTagLogin', version);
+
+    // Tampilkan pesan session expired jika ada
+    if (expiredMessage) {
+      const { alertShow, alertDismiss } = require('../../utils/alertGenerator');
+      const alertContainer = document.querySelector('#alertContainer');
+      if (alertContainer) {
+        alertContainer.innerHTML = alertShow(expiredMessage, 'danger');
+        alertDismiss(10000, 'danger');
+      }
+    }
     document.querySelector('#showHidePassword span').addEventListener('click', (e) => {
       e.preventDefault();
       const showHideBtn = e.currentTarget.firstElementChild;
@@ -82,7 +92,7 @@ function login(ipcRenderer, wrapperElm, base_url, version, icons, home) {
                 id: emailElm.value,
                 sessionid: resJson.sessionID || '',
               });
-              home(ipcRenderer, wrapperElm, base_url, version, resJson.sessionKey || '', resJson.validThru || null, login);
+              home(ipcRenderer, wrapperElm, base_url, version, resJson.sessionKey || '', resJson.validThru || null, login, sessionConfig);
             } else {
               alertContainer.innerHTML = alertShow(resJson.message, 'danger');
               alertDismiss(alertTimeout, 'danger');

@@ -62,7 +62,21 @@ SERVER.listen(PORT, function () {
       });
       win.loadFile(path.join(__dirname, "/index.html"));
       win.webContents.once("dom-ready", () => {
-        win.webContents.send("dom-loaded", { port: PORT, version: versionTag });
+        // Baca session config dari wacsa.ini dan kirim ke renderer
+        const sessionConfig = config.SessionOptions || {};
+        const autoRefresh = sessionConfig.AutoRefresh !== undefined
+          ? String(sessionConfig.AutoRefresh).toLowerCase() !== 'false'
+          : true;
+        win.webContents.send("dom-loaded", {
+          port: PORT,
+          version: versionTag,
+          sessionConfig: {
+            autoRefresh,
+            refreshBeforeExpire: parseInt(sessionConfig.RefreshBeforeExpire) || 30,
+            refreshRetryMax: parseInt(sessionConfig.RefreshRetryMax) || 3,
+            refreshRetryDelay: parseInt(sessionConfig.RefreshRetryDelay) || 5,
+          }
+        });
       });
       win.focus();
 

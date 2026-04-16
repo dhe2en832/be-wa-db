@@ -13,7 +13,7 @@ const {
   isHiddenElem,
 } = require('../../utils/stylesGenerator');
 
-function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validThru = null, loginFn = null) {
+function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validThru = null, loginFn = null, sessionConfig = {}) {
   const pageHome = `
   <div class="container-fluid px-3">
       <!-- loading -->
@@ -156,10 +156,13 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
     ipcRenderer.send('login-succeed');
 
     // ─── Session Expiration Management ───────────────────────────────────────
-    // Konfigurasi
-    const SESSION_REFRESH_RETRY_MAX = 3;       // Jumlah maksimal retry saat refresh gagal
-    const SESSION_REFRESH_RETRY_DELAY = 5000;  // Jeda antar retry (ms)
-    const SESSION_REFRESH_BEFORE_EXPIRE = 30;  // Refresh dilakukan N detik sebelum expire
+    // Konfigurasi dari wacsa.ini [SessionOptions]
+    const SESSION_AUTO_REFRESH     = sessionConfig.autoRefresh !== false;
+    const SESSION_REFRESH_RETRY_MAX   = sessionConfig.refreshRetryMax   || 3;
+    const SESSION_REFRESH_RETRY_DELAY = (sessionConfig.refreshRetryDelay || 5) * 1000;
+    const SESSION_REFRESH_BEFORE_EXPIRE = sessionConfig.refreshBeforeExpire || 30;
+
+    console.log(`[SESSION] Config — autoRefresh:${SESSION_AUTO_REFRESH}, beforeExpire:${SESSION_REFRESH_BEFORE_EXPIRE}s, retryMax:${SESSION_REFRESH_RETRY_MAX}, retryDelay:${SESSION_REFRESH_RETRY_DELAY/1000}s`);
 
     let sessionTimer = null;
 
@@ -229,19 +232,24 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
         el.classList.remove('text-success');
         el.classList.add('text-danger', 'fw-bold');
       }
-      // Tampilkan pesan ke user
+      // Tampilkan pesan countdown ke user
       const alertContainer = document.querySelector('#alertContainer');
       if (alertContainer) {
         appendElem('#alertContainer', alertShow(
-          'Session Anda telah berakhir. Silahkan login kembali.',
+          'Session Anda telah berakhir. Kembali ke halaman login dalam 3 detik...',
           'danger'
         ));
       }
-      // Kembali ke halaman login setelah 3 detik
+      // Kembali ke halaman login setelah 3 detik, bawa pesan expired
       setTimeout(() => {
         if (loginFn) {
-          loginFn(ipcRenderer, wrapperElm, base_url, version,
-            { showSVG: '', hideSVG: '' }, home);
+          loginFn(
+            ipcRenderer, wrapperElm, base_url, version,
+            { showSVG: '', hideSVG: '' },
+            home,
+            sessionConfig,
+            'Session Anda telah berakhir. Silahkan login kembali.'
+          );
         }
       }, 3000);
     }
@@ -249,21 +257,38 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
     /**
      * Jadwalkan refresh berdasarkan validThru timestamp.
      * Refresh dilakukan SESSION_REFRESH_BEFORE_EXPIRE detik sebelum expire.
+     * Jika AutoRefresh=false, tetap jadwalkan expired handler tepat saat expire.
      */
     function scheduleSessionRefresh(vt) {
       if (sessionTimer) { clearTimeout(sessionTimer); sessionTimer = null; }
+
       const expireDate = parseValidThru(vt);
       if (!expireDate) {
         console.log('[SESSION] validThru tidak tersedia atau tidak valid, session timer tidak diaktifkan.');
         return;
       }
+
       const now = Date.now();
       const expireMs = expireDate.getTime();
+
+      if (!SESSION_AUTO_REFRESH) {
+        // AutoRefresh off — tidak refresh, tapi tetap pantau waktu expire
+        const delayToExpire = expireMs - now;
+        if (delayToExpire <= 0) {
+          console.log('[SESSION] AutoRefresh off — session sudah expire, langsung logout...');
+          handleSessionExpired();
+        } else {
+          console.log(`[SESSION] AutoRefresh off — session akan expire dalam ${Math.round(delayToExpire / 1000)} detik (${expireDate.toLocaleTimeString()})`);
+          sessionTimer = setTimeout(() => handleSessionExpired(), delayToExpire);
+        }
+        return;
+      }
+
+      // AutoRefresh on — refresh sebelum expire
       const refreshAt = expireMs - (SESSION_REFRESH_BEFORE_EXPIRE * 1000);
       const delay = refreshAt - now;
 
       if (delay <= 0) {
-        // Sudah lewat waktu refresh, langsung refresh sekarang
         console.log('[SESSION] Waktu refresh sudah lewat, langsung refresh...');
         doRefreshWithRetry(1);
       } else {
