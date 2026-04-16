@@ -46,6 +46,7 @@ WACSA-MD ini juga sering disebut WA ENGINE dari CSA Computer.
 * Webhook Status Kirim Pesan
 * Multi Device Beta Support
 * Built-in Updater
+* Session Expiration — auto-refresh, retry, dan logout otomatis saat session habis
 
 ## Library Utama
 [https://github.com/pedroslopez/whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js)
@@ -123,4 +124,13 @@ sehingga chat OTP atau history pesan akan tampil ke user
 * Fitur: AuthKeyValue di wacsa.ini otomatis diupdate dengan token baru setiap user login
 * Fitur: useWWebCache dan wwebCacheVersion tetap dibaca dari credentials.json dalam asar (tidak dipindah ke wacsa.ini)
 * Sistem: format versi package.json harus semver 3 bagian (MAJOR.MINOR.PATCH) agar electron-updater tidak error
+
+2026/04/16 - v0.35.260416
+* Fitur: Session expiration — session otomatis dipantau berdasarkan validThru dari server
+* Fitur: Auto-refresh session sebelum expire dengan retry otomatis (configurable)
+* Fitur: Jika semua retry gagal, WACSA logout otomatis dan kembali ke form login dengan pesan informasi
+* Fitur: Informasi "Session Berlaku Hingga" ditampilkan di card Koneksi (hijau = aktif, merah = expired)
+* Fitur: Konfigurasi session di wacsa.ini via seksi [SessionOptions] — AutoRefresh, RefreshBeforeExpire, RefreshRetryMax, RefreshRetryDelay
+* Sistem: Endpoint login/logout/refresh digabung menjadi satu key Endpoint di [AuthAPI]
+* Sistem: Session config dibaca dari main process dan dikirim ke renderer via IPC saat startup
 
