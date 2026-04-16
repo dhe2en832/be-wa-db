@@ -82,7 +82,7 @@ function login(ipcRenderer, wrapperElm, base_url, version, icons, home) {
                 id: emailElm.value,
                 sessionid: resJson.sessionID || '',
               });
-              home(ipcRenderer, wrapperElm, base_url, version, resJson.sessionKey || '');
+              home(ipcRenderer, wrapperElm, base_url, version, resJson.sessionKey || '', resJson.validThru || null, login);
             } else {
               alertContainer.innerHTML = alertShow(resJson.message, 'danger');
               alertDismiss(alertTimeout, 'danger');

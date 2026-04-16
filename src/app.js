@@ -156,6 +156,29 @@ SERVER.listen(PORT, function () {
         }
       });
 
+      // Session refresh — dipanggil dari renderer saat mendekati waktu expire
+      ipcMain.handle("session-refresh", async () => {
+        try {
+          const result = await authService.refreshSession();
+          console.log("[APP] Session refresh result:", result);
+          return result;
+        } catch (error) {
+          console.error("[APP] Session refresh error:", error);
+          return { success: false, message: error.message };
+        }
+      });
+
+      // Session expired — dipanggil dari renderer setelah semua retry gagal
+      ipcMain.on("session-expired", async () => {
+        try {
+          console.log("[APP] Session expired, performing logout...");
+          await authService.logout({ isLocalLogout: true });
+          await waClient.destroy();
+        } catch (error) {
+          console.error("[APP] Error during session-expired logout:", error);
+        }
+      });
+
       updateListener(autoUpdater, ipcMain, win, errorLogger);
     };
   }

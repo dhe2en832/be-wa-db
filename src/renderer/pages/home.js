@@ -13,7 +13,7 @@ const {
   isHiddenElem,
 } = require('../../utils/stylesGenerator');
 
-function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '') {
+function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validThru = null, loginFn = null) {
   const pageHome = `
   <div class="container-fluid px-3">
       <!-- loading -->
@@ -82,6 +82,10 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '') {
                  <span id="onlineSecretKey" class="flex-grow-1 text-truncate font-monospace" style="font-size:0.85rem;"></span>
                  <button id="btnCopySecretKey" class="btn btn-sm btn-outline-danger ms-2 py-0 px-2" style="font-size:0.8rem;">cop</button>
                </div>
+               <div class="d-flex align-items-center justify-content-between mt-2" style="font-size:0.85rem;">
+                 <span class="text-muted">Session Berlaku Hingga :</span>
+                 <span id="sessionValidThru" class="font-monospace text-end">-</span>
+               </div>
             </div>
          </div>
          <div class="col-md-12 my-2">
@@ -102,6 +106,24 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '') {
 
     // Isi secret key dan bind tombol copy
     setElemText('#onlineSecretKey', secretKey);
+
+    // Isi session valid thru
+    function updateSessionValidThruDisplay(vt) {
+      const el = document.querySelector('#sessionValidThru');
+      if (!el) return;
+      const d = parseValidThru(vt);
+      if (d) {
+        // Format: HH:MM:SS - DD/MM/YYYY
+        const pad = (n) => String(n).padStart(2, '0');
+        el.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} - ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+        el.classList.remove('text-danger');
+        el.classList.add('text-success');
+      } else {
+        el.textContent = '-';
+        el.classList.remove('text-success', 'text-danger');
+      }
+    }
+    updateSessionValidThruDisplay(validThru);
     document.querySelector('#btnCopySecretKey').addEventListener('click', () => {
       if (!secretKey) return;
       navigator.clipboard.writeText(secretKey).then(() => {
@@ -124,6 +146,7 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '') {
     timeInterval = setInterval(() => timeCounter('#loadingDuration'), 1000);
 
     window.addEventListener('beforeunload', async () => {
+      if (sessionTimer) { clearTimeout(sessionTimer); sessionTimer = null; }
       const totalRev = parseInt(getElemText('#rev_counter'));
       const totalSen = parseInt(getElemText('#sen_counter'));
       if (isHiddenElem('#content') === false) await ipcRenderer.send('client_disconnected', [totalRev, totalSen]);
@@ -131,6 +154,127 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '') {
     });
 
     ipcRenderer.send('login-succeed');
+
+    // ─── Session Expiration Management ───────────────────────────────────────
+    // Konfigurasi
+    const SESSION_REFRESH_RETRY_MAX = 3;       // Jumlah maksimal retry saat refresh gagal
+    const SESSION_REFRESH_RETRY_DELAY = 5000;  // Jeda antar retry (ms)
+    const SESSION_REFRESH_BEFORE_EXPIRE = 30;  // Refresh dilakukan N detik sebelum expire
+
+    let sessionTimer = null;
+
+    /**
+     * Parse timestamp format YYYYMMDDTHH:mm:ss menjadi Date object
+     */
+    function parseValidThru(ts) {
+      if (!ts || typeof ts !== 'string') return null;
+      // Format: 20260416T09:04:28
+      const m = ts.match(/^(\d{4})(\d{2})(\d{2})T(\d{2}):(\d{2}):(\d{2})$/);
+      if (!m) return null;
+      return new Date(
+        parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]),
+        parseInt(m[4]), parseInt(m[5]), parseInt(m[6])
+      );
+    }
+
+    /**
+     * Lakukan refresh dengan retry. Jika semua retry gagal → session expired.
+     */
+    async function doRefreshWithRetry(attempt = 1) {
+      console.log(`[SESSION] Refresh attempt ${attempt}/${SESSION_REFRESH_RETRY_MAX}`);
+      try {
+        const result = await ipcRenderer.invoke('session-refresh');
+        if (result && result.success) {
+          console.log('[SESSION] Refresh berhasil, validThru baru:', result.validThru);
+          const alertContainer = document.querySelector('#alertContainer');
+          if (alertContainer) {
+            appendElem('#alertContainer', alertShow('Session diperpanjang.', 'info'));
+            alertDismiss(4000, 'info');
+          }
+          // Update tampilan validThru
+          updateSessionValidThruDisplay(result.validThru);
+          // Jadwalkan refresh berikutnya berdasarkan validThru baru
+          scheduleSessionRefresh(result.validThru);
+        } else {
+          console.warn(`[SESSION] Refresh gagal (attempt ${attempt}):`, result?.message);
+          if (attempt < SESSION_REFRESH_RETRY_MAX) {
+            setTimeout(() => doRefreshWithRetry(attempt + 1), SESSION_REFRESH_RETRY_DELAY);
+          } else {
+            console.error('[SESSION] Semua retry gagal. Session expired, melakukan logout...');
+            handleSessionExpired();
+          }
+        }
+      } catch (err) {
+        console.error('[SESSION] Error saat refresh:', err);
+        if (attempt < SESSION_REFRESH_RETRY_MAX) {
+          setTimeout(() => doRefreshWithRetry(attempt + 1), SESSION_REFRESH_RETRY_DELAY);
+        } else {
+          console.error('[SESSION] Semua retry gagal. Session expired, melakukan logout...');
+          handleSessionExpired();
+        }
+      }
+    }
+
+    /**
+     * Tangani session yang sudah expired: tampilkan pesan, logout, kembali ke login.
+     */
+    function handleSessionExpired() {
+      if (sessionTimer) { clearTimeout(sessionTimer); sessionTimer = null; }
+      // Beritahu main process untuk logout dan destroy WA client
+      ipcRenderer.send('session-expired');
+      // Tandai display merah
+      const el = document.querySelector('#sessionValidThru');
+      if (el) {
+        el.textContent = 'EXPIRED';
+        el.classList.remove('text-success');
+        el.classList.add('text-danger', 'fw-bold');
+      }
+      // Tampilkan pesan ke user
+      const alertContainer = document.querySelector('#alertContainer');
+      if (alertContainer) {
+        appendElem('#alertContainer', alertShow(
+          'Session Anda telah berakhir. Silahkan login kembali.',
+          'danger'
+        ));
+      }
+      // Kembali ke halaman login setelah 3 detik
+      setTimeout(() => {
+        if (loginFn) {
+          loginFn(ipcRenderer, wrapperElm, base_url, version,
+            { showSVG: '', hideSVG: '' }, home);
+        }
+      }, 3000);
+    }
+
+    /**
+     * Jadwalkan refresh berdasarkan validThru timestamp.
+     * Refresh dilakukan SESSION_REFRESH_BEFORE_EXPIRE detik sebelum expire.
+     */
+    function scheduleSessionRefresh(vt) {
+      if (sessionTimer) { clearTimeout(sessionTimer); sessionTimer = null; }
+      const expireDate = parseValidThru(vt);
+      if (!expireDate) {
+        console.log('[SESSION] validThru tidak tersedia atau tidak valid, session timer tidak diaktifkan.');
+        return;
+      }
+      const now = Date.now();
+      const expireMs = expireDate.getTime();
+      const refreshAt = expireMs - (SESSION_REFRESH_BEFORE_EXPIRE * 1000);
+      const delay = refreshAt - now;
+
+      if (delay <= 0) {
+        // Sudah lewat waktu refresh, langsung refresh sekarang
+        console.log('[SESSION] Waktu refresh sudah lewat, langsung refresh...');
+        doRefreshWithRetry(1);
+      } else {
+        console.log(`[SESSION] Refresh dijadwalkan dalam ${Math.round(delay / 1000)} detik (expire: ${expireDate.toLocaleTimeString()})`);
+        sessionTimer = setTimeout(() => doRefreshWithRetry(1), delay);
+      }
+    }
+
+    // Mulai session timer jika validThru tersedia
+    scheduleSessionRefresh(validThru);
+    // ─────────────────────────────────────────────────────────────────────────
 
     ipcRenderer.on('fatal-error', (event, error) => {
       hideElem('#loading');

@@ -67,6 +67,30 @@ function authRoutes(appExpress) {
     }
   });
 
+  // Refresh session endpoint — dipanggil dari renderer via IPC atau langsung
+  appExpress.post("/auth/refresh", async (req, res) => {
+    try {
+      const result = await authService.refreshSession();
+      if (result.success) {
+        return res.status(200).json({
+          status: true,
+          validThru: result.validThru,
+          message: result.message,
+        });
+      } else {
+        return res.status(401).json({
+          status: false,
+          message: result.message,
+        });
+      }
+    } catch (error) {
+      return res.status(500).json({
+        status: false,
+        message: error.message,
+      });
+    }
+  });
+
   // Logout endpoint — dipanggil dari client eksternal (wacsa-ui, dll)
   // isLocalLogout selalu false dari sini — tidak boleh mengosongkan credentials
   appExpress.post("/auth/logout", async (req, res) => {

@@ -26,7 +26,7 @@ function updateAuthKeyValue(token) {
 async function login(credentials) {
   const { email, password } = credentials;
   const authConfig = config.AuthAPI || {};
-  const loginEndpoint = authConfig.LoginEndpoint;
+  const loginEndpoint = authConfig.Endpoint;
 
   // credentials.json di luar asar: rootPath/credentials.json (folder instalasi)
   const credentialsPath = path.resolve(rootPath + "/credentials.json");
@@ -137,7 +137,7 @@ async function login(credentials) {
 async function logout(options = {}) {
   const { isLocalLogout = false } = options;
   const authConfig = config.AuthAPI || {};
-  const logoutEndpoint = authConfig.LogoutEndpoint;
+  const logoutEndpoint = authConfig.Endpoint;
 
   // READ credentials from credentials.json di folder instalasi
   const credentialsPath = path.resolve(rootPath + "/credentials.json");
@@ -212,4 +212,65 @@ async function logout(options = {}) {
   }
 }
 
-module.exports = { login, logout, updateAuthKeyValue };
+/**
+ * Refresh session ke server auth.
+ * Mengembalikan { success, validThru, message }
+ */
+async function refreshSession() {
+  const authConfig = config.AuthAPI || {};
+  const refreshEndpoint = authConfig.Endpoint;
+
+  if (!refreshEndpoint) {
+    // Tidak ada endpoint refresh — anggap session tidak pernah expire
+    return { success: true, validThru: null, message: "No refresh endpoint configured" };
+  }
+
+  const credentialsPath = path.resolve(rootPath + "/credentials.json");
+  let creds = {};
+  if (fs.existsSync(credentialsPath)) {
+    try { creds = JSON.parse(fs.readFileSync(credentialsPath, "utf8")); } catch(e) {}
+  }
+
+  const secretkey = creds.token;
+  const xuser = creds.id;
+  const sessionid = creds.sessionid;
+
+  if (!secretkey || !xuser) {
+    return { success: false, message: "No active credentials to refresh" };
+  }
+
+  try {
+    const timeout = parseInt(authConfig.Timeout) || 10;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout * 1000);
+
+    const response = await fetch(refreshEndpoint, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-user": xuser,
+        "secretkey": secretkey,
+        "sessionid": sessionid || "",
+      },
+      body: JSON.stringify({ action: "refresh" }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    const responseBody = await response.json();
+    console.log("[AUTH] Refresh response:", JSON.stringify(responseBody));
+
+    if (responseBody.result === true) {
+      const newValidThru = responseBody.validthru || null;
+      return { success: true, validThru: newValidThru, message: "Session refreshed" };
+    } else {
+      const errorMsg = responseBody?.onfail?.cerror || responseBody?.message || "Refresh failed";
+      return { success: false, message: errorMsg };
+    }
+  } catch (error) {
+    return { success: false, message: `Refresh failed: ${error.message}` };
+  }
+}
+
+module.exports = { login, logout, refreshSession, updateAuthKeyValue };
