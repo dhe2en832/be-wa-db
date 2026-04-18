@@ -19,6 +19,11 @@ class DynamicChangelogGenerator {
         this.docsDir = path.join(process.cwd(), 'custom/docs/changelog/daily');
         this.patterns = this.initializePatterns();
         this.categories = this.initializeCategories();
+
+        // Support --date=YYYY-MM-DD argument untuk generate changelog tanggal tertentu
+        const dateArg = process.argv.find(a => a.startsWith('--date='));
+        this.targetDate = dateArg ? dateArg.split('=')[1] : new Date().toISOString().split('T')[0];
+        console.log(`📅 Generating changelog for: ${this.targetDate}`);
     }
 
     initializePatterns() {
@@ -65,58 +70,96 @@ class DynamicChangelogGenerator {
             '📖 Documentation': [],
             '🧪 Tests': [],
             '🎨 UI/UX': [],
+            '🔐 Auth/Session': [],
             '🔌 API': [],
             '⚙️ Config': [],
             '⚙️ Others': []
         };
     }
 
-    categorizeCommit(commit) {
-        const { message, files } = commit;
-        
-        // Priority-based categorization
-        if (message.startsWith('feat:') || message.includes('add') || message.includes('new')) {
-            return '✨ Features';
-        }
-        
-        if (message.startsWith('fix:') || message.includes('fix') || message.includes('bug')) {
-            return '🐞 Fixes';
-        }
-        
-        if (files.some(file => file.includes('.md') || file.includes('docs/') || file.includes('README'))) {
+    /**
+     * Kategorisasi per-FILE berdasarkan path dan isi diff,
+     * bukan per-commit. Lebih akurat karena tiap file bisa beda konteks.
+     */
+    categorizeFile(filePath, diff, commitMessage) {
+        const f = filePath.toLowerCase();
+        const d = (diff || '').toLowerCase();
+        const m = (commitMessage || '').toLowerCase();
+
+        // --- Docs / changelog ---
+        if (f.includes('.md') || f.includes('docs/') || f.includes('readme') || f.includes('changelog')) {
             return '📖 Documentation';
         }
-        
-        if (files.some(file => file.includes('.test') || file.includes('.spec') || file.includes('test'))) {
+
+        // --- Tests ---
+        if (f.includes('.test.') || f.includes('.spec.') || f.includes('/test') || f.includes('/tests')) {
             return '🧪 Tests';
         }
-        
-        if (files.some(file => file.includes('.jsx') || file.includes('.css') || file.includes('styled'))) {
-            return '🎨 UI/UX';
-        }
-        
-        if (files.some(file => file.includes('api') || file.includes('service') || message.includes('api'))) {
-            return '🔌 API';
-        }
-        
-        if (files.some(file => file.includes('.env') || file.includes('config') || file.includes('Config'))) {
+
+        // --- Config / env / build ---
+        if (
+            f.includes('package.json') || f.includes('.env') || f.includes('webpack') ||
+            f.includes('vite.config') || f.includes('tsconfig') || f.includes('eslint') ||
+            f.includes('wacsa.ini') || f.includes('credentials.json') || f.includes('.cjs') ||
+            f.includes('installer') || f.includes('builder')
+        ) {
             return '⚙️ Config';
         }
-        
-        if (message.startsWith('refactor:') || message.startsWith('chore:') || 
-            message.includes('update') || message.includes('refactor')) {
-            return '⚙️ Others';
+
+        // --- UI / renderer pages & styles ---
+        if (
+            f.includes('/pages/') || f.includes('/components/') ||
+            f.includes('.css') || f.includes('.scss') || f.includes('.html') ||
+            f.includes('styled') || f.includes('index.html') ||
+            d.includes('classname') || d.includes('innerhtml') || d.includes('getelementsby') ||
+            d.includes('queryselector') || d.includes('modal') || d.includes('btn-') ||
+            d.includes('display:') || d.includes('style=')
+        ) {
+            return '🎨 UI/UX';
         }
-        
+
+        // --- Auth / session ---
+        if (
+            f.includes('auth') || f.includes('session') || f.includes('login') ||
+            d.includes('localstorage') || d.includes('sessionkey') || d.includes('password') ||
+            d.includes('token') || d.includes('credential')
+        ) {
+            return '🔐 Auth/Session';
+        }
+
+        // --- API / service / routes ---
+        if (
+            f.includes('/routes/') || f.includes('/services/') || f.includes('api') ||
+            d.includes('fetch(') || d.includes('axios') || d.includes('res.json') ||
+            d.includes('req.body') || d.includes('ipcmain') || d.includes('ipcrenderer')
+        ) {
+            return '🔌 API';
+        }
+
+        // --- Fixes dari commit message ---
+        if (m.startsWith('fix:') || m.includes('fix') || m.includes('bug') || m.includes('hotfix')) {
+            return '🐞 Fixes';
+        }
+
+        // --- Features dari commit message ---
+        if (m.startsWith('feat:') || m.includes('add ') || m.includes('new ') || m.includes('implement')) {
+            return '✨ Features';
+        }
+
         return '⚙️ Others';
+    }
+
+    // Tetap ada untuk backward compat, delegate ke categorizeFile
+    categorizeCommit(commit) {
+        return this.categorizeFile(commit.files[0] || '', '', commit.message);
     }
 
     getCommitsSinceLastRun() {
         try {
             const commits = [];
             
-            // First, get today's commits
-            const today = new Date().toISOString().split('T')[0];
+            // First, get commits for target date
+            const today = this.targetDate;
             const gitCommand = `git log --since="${today} 00:00:00" --until="${today} 23:59:59" --pretty=format:"%H|%s|%ai" --name-only`;
             const output = execSync(gitCommand, { encoding: 'utf8' });
             
@@ -284,86 +327,120 @@ class DynamicChangelogGenerator {
         return ranges.join(', ');
     }
 
-    extractFunction(message, diff) {
-        // Strategy 1: Extract from commit message
-        if (message.includes(':')) {
-            const afterColon = message.split(':')[1];
-            if (afterColon && afterColon.trim().length > 5) {
-                return afterColon.trim();
-            }
+    extractFunction(filePath, message, diff) {
+        const fileName = path.basename(filePath || 'unknown', path.extname(filePath || ''));
+        const f = (filePath || '').toLowerCase();
+        const d = (diff || '');
+        const m = (message || '').toLowerCase();
+
+        // Dari nama file — paling akurat
+        const fileDescriptions = {
+            'home':        'Halaman utama (dashboard)',
+            'login':       'Halaman login & autentikasi',
+            'session':     'Manajemen sesi pengguna',
+            'app':         'Entry point aplikasi Electron',
+            'auth':        'Layanan autentikasi',
+            'package':     'Konfigurasi package & scripts',
+            'credentials': 'Data kredensial aplikasi',
+            'wacsa':       'Konfigurasi WACSA (.ini)',
+            'index':       'Entry point / halaman utama',
+        };
+        const lowerFileName = fileName.toLowerCase();
+        for (const [key, desc] of Object.entries(fileDescriptions)) {
+            if (lowerFileName.includes(key)) return desc;
         }
-        
-        // Strategy 2: Extract from file context
-        const fileName = path.basename('unknown');
-        if (fileName.includes('Table')) return 'Table functionality';
-        if (fileName.includes('Form')) return 'Form handling';
-        if (fileName.includes('Modal')) return 'Modal dialog';
-        if (fileName.includes('useTable')) return 'Table data processing';
-        if (fileName.includes('Config')) return 'Configuration';
-        
-        // Strategy 3: Extract from diff content
-        for (const [keyword, description] of Object.entries(this.patterns.functionKeywords)) {
-            if (message.toLowerCase().includes(keyword) || diff.toLowerCase().includes(keyword)) {
-                return description;
-            }
+
+        // Dari path folder
+        if (f.includes('/pages/'))      return `Halaman ${fileName}`;
+        if (f.includes('/services/'))   return `Service ${fileName}`;
+        if (f.includes('/routes/'))     return `Route ${fileName}`;
+        if (f.includes('/components/')) return `Komponen ${fileName}`;
+        if (f.includes('/utils/'))      return `Utility ${fileName}`;
+        if (f.includes('/scripts/'))    return `Script ${fileName}`;
+
+        // Dari commit message (setelah tanda ':')
+        if (m.includes(':')) {
+            const afterColon = message.split(':').slice(1).join(':').trim();
+            if (afterColon.length > 5 && afterColon.length < 80) return afterColon;
         }
-        
-        // Strategy 4: Extract from code patterns
-        if (diff.includes('function ') || diff.includes('const ') + diff.includes('=>')) {
-            return 'Function implementation';
-        }
-        if (diff.includes('export ')) {
-            return 'Module export';
-        }
-        if (diff.includes('import ')) {
-            return 'Import dependency';
-        }
-        
-        return 'Code implementation';
+
+        // Dari isi diff — cari nama fungsi/class yang ditambah
+        const fnMatch = d.match(/^\+\s*(?:async\s+)?function\s+(\w+)/m);
+        if (fnMatch) return `Fungsi ${fnMatch[1]}`;
+        const arrowMatch = d.match(/^\+\s*(?:const|let)\s+(\w+)\s*=\s*(?:async\s*)?\(/m);
+        if (arrowMatch) return `Fungsi ${arrowMatch[1]}`;
+        const classMatch = d.match(/^\+\s*class\s+(\w+)/m);
+        if (classMatch) return `Class ${classMatch[1]}`;
+
+        return `Implementasi ${fileName}`;
     }
 
-    extractChanges(diff) {
-        const changes = [];
-        const lines = diff.split('\n');
-        
+    extractChanges(filePath, diff) {
+        const changes = new Set();
+        const f = (filePath || '').toLowerCase();
+        const lines = (diff || '').split('\n');
+
+        // Pola spesifik per file
+        if (f.includes('session')) {
+            if (diff.includes('+') && diff.includes('passwordHash'))  changes.add('Tambah penyimpanan hash password');
+            if (diff.includes('hashPassword'))                         changes.add('Tambah fungsi hash password (SHA-256)');
+            if (diff.includes('getPasswordHash'))                      changes.add('Tambah getter hash password');
+            if (diff.includes('clearSession') && diff.includes('removeItem')) changes.add('Hapus hash password saat logout');
+        }
+        if (f.includes('login')) {
+            if (diff.includes('hashPassword'))    changes.add('Hash password sebelum disimpan ke localStorage');
+            if (diff.includes('loggedInUser') || diff.includes('emailElm.value')) changes.add('Kirim email user ke halaman home');
+        }
+        if (f.includes('home')) {
+            if (diff.includes('loggedInUser'))          changes.add('Tampilkan nama user yang sedang login');
+            if (diff.includes('modalVerifyPassword'))   changes.add('Tambah modal verifikasi password untuk lihat secret key');
+            if (diff.includes('btnRevealSecretKey'))    changes.add('Tambah tombol reveal/hide secret key');
+            if (diff.includes('••••'))                  changes.add('Sembunyikan nilai secret key secara default');
+            if (diff.includes('disabled'))              changes.add('Disable tombol copy sampai password diverifikasi');
+            if (diff.includes('SHA-256') || diff.includes('crypto.subtle')) changes.add('Verifikasi password via SHA-256 di sisi client');
+        }
+        if (f.includes('package.json')) {
+            if (diff.includes('"changelog"'))   changes.add('Tambah script changelog');
+            if (diff.includes('"ship"'))        changes.add('Tambah script ship (git add + commit + push)');
+            if (diff.includes('"changelog:'))   changes.add('Tambah script changelog varian (kemarin, monthly)');
+        }
+        if (f.includes('credentials.json')) {
+            if (diff.includes('localUser'))  changes.add('Tambah field localUser');
+            if (diff.includes('"id": ""'))   changes.add('Reset field id');
+        }
+        if (f.includes('wacsa.ini')) {
+            if (diff.includes('AuthKeyValue')) changes.add('Update AuthKeyValue token');
+        }
+        if (f.includes('.cjs') || f.includes('generate-changelog') || f.includes('git-push')) {
+            if (diff.includes('categorizeFile'))    changes.add('Kategorisasi per-file (bukan per-commit)');
+            if (diff.includes('extractFunction'))   changes.add('Perbaiki ekstraksi deskripsi fungsi');
+            if (diff.includes('extractChanges'))    changes.add('Perbaiki deskripsi perubahan lebih spesifik');
+            if (diff.includes('git push'))          changes.add('Tambah auto git push');
+            if (diff.includes('buildCommitMessage')) changes.add('Generate commit message dari changelog');
+        }
+
+        // Pola generik dari diff lines
         lines.forEach((line) => {
             if (line.startsWith('+') && !line.startsWith('+++')) {
-                const codeLine = line.substring(1);
-                
-                // Check for specific patterns
-                for (const [pattern, description] of Object.entries(this.patterns.changeKeywords)) {
-                    if (codeLine.includes(pattern.replace('+', ''))) {
-                        changes.push(description);
-                        break;
-                    }
-                }
-                
-                // Additional pattern matching
-                if (codeLine.includes('const ') && codeLine.includes('=>')) {
-                    changes.push('Add arrow function');
-                }
-                if (codeLine.includes('useState')) {
-                    changes.push('Add state management');
-                }
-                if (codeLine.includes('useEffect')) {
-                    changes.push('Add effect hook');
-                }
-                if (codeLine.includes('className=')) {
-                    changes.push('Update styling');
-                }
+                const c = line.substring(1);
+                if (c.includes('async function') || c.includes('async ('))  changes.add('Tambah fungsi async');
+                else if (c.match(/^\s*(export\s+)?function\s+\w+/))         changes.add('Tambah fungsi baru');
+                else if (c.match(/^\s*const\s+\w+\s*=\s*(\(|async)/))       changes.add('Tambah arrow function');
+                if (c.includes('import ') && c.includes('require'))         changes.add('Tambah import modul');
+                if (c.includes('addEventListener'))                          changes.add('Tambah event listener');
+                if (c.includes('ipcRenderer.send') || c.includes('ipcMain.on')) changes.add('Tambah komunikasi IPC');
+                if (c.includes('localStorage.setItem'))                     changes.add('Simpan data ke localStorage');
+                if (c.includes('localStorage.removeItem'))                  changes.add('Hapus data dari localStorage');
+                if (c.includes('fetch('))                                    changes.add('Tambah HTTP request');
             }
-            
             if (line.startsWith('-') && !line.startsWith('---')) {
-                const codeLine = line.substring(1);
-                if (codeLine.includes('console.log')) {
-                    changes.push('Remove debug logs');
-                }
+                const c = line.substring(1);
+                if (c.includes('console.log')) changes.add('Hapus debug log');
             }
         });
-        
-        // Remove duplicates and join
-        const uniqueChanges = [...new Set(changes)];
-        return uniqueChanges.length > 0 ? uniqueChanges.join(', ') : 'Code implementation';
+
+        const result = [...changes];
+        return result.length > 0 ? result.join('; ') : 'Pembaruan kode';
     }
 
     formatTimestamp(date) {
@@ -453,7 +530,6 @@ class DynamicChangelogGenerator {
         const processedFiles = new Set();
         
         commits.forEach(commit => {
-            const category = this.categorizeCommit(commit);
             const timestamp = this.formatTimestamp(commit.date);
             
             commit.files.forEach(filePath => {
@@ -464,8 +540,10 @@ class DynamicChangelogGenerator {
                 
                 const diff = this.getFileDiff(filePath, commit.hash);
                 const lineNumbers = this.extractLineNumbers(diff);
-                const fungsi = this.extractFunction(commit.message, diff);
-                const perubahan = this.extractChanges(diff);
+                // Kategorisasi per-file, bukan per-commit
+                const category = this.categorizeFile(filePath, diff, commit.message);
+                const fungsi = this.extractFunction(filePath, commit.message, diff);
+                const perubahan = this.extractChanges(filePath, diff);
                 const formattedDiff = this.formatCodeDiff(diff);
                 
                 // Add timestamp comment to the actual file
@@ -489,7 +567,7 @@ class DynamicChangelogGenerator {
     }
 
     formatMarkdown(categories) {
-        const today = new Date();
+        const today = new Date(this.targetDate + 'T12:00:00');
         const dateStr = today.toLocaleDateString('id-ID', { 
             day: 'numeric', 
             month: 'long', 
@@ -573,7 +651,7 @@ class DynamicChangelogGenerator {
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 
-// First priority: USE_BRWDEF line (more flexible pattern) // [20260414_143712]
+                // First priority: USE_BRWDEF line (more flexible pattern)
                 if (line.includes('USE_BRWDEF') && line.includes(':')) {
                     // Remove existing timestamp comment if present
                     const cleanedLine = lines[i].replace(/\/\/ \[\d{8}_\d{6}\]$/, '').trim();
@@ -594,15 +672,11 @@ class DynamicChangelogGenerator {
     }
 
     saveChangelog(content) {
-        // Ensure directory exists
         if (!fs.existsSync(this.docsDir)) {
             fs.mkdirSync(this.docsDir, { recursive: true });
         }
         
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
+        const [year, month, day] = this.targetDate.split('-');
         
         const filename = `codeChange-${year}${month}${day}.md`;
         const filepath = path.join(this.docsDir, filename);

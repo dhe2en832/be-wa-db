@@ -1,5 +1,6 @@
 const { alertShow, alertDismiss } = require('../../utils/alertGenerator');
 const { setElemText } = require('../../utils/stylesGenerator');
+const { hashPassword } = require('../services/session');
 
 function login(ipcRenderer, wrapperElm, base_url, version, icons, home, sessionConfig = {}, expiredMessage = null) {
   const pageLogin = `
@@ -92,7 +93,11 @@ function login(ipcRenderer, wrapperElm, base_url, version, icons, home, sessionC
                 id: emailElm.value,
                 sessionid: resJson.sessionID || '',
               });
-              home(ipcRenderer, wrapperElm, base_url, version, resJson.sessionKey || '', resJson.validThru || null, login, sessionConfig);
+              // Hash password dan simpan ke localStorage (password asli tidak disimpan)
+              hashPassword(passwordElm.value).then((pwHash) => {
+                localStorage.setItem('passwordHash', pwHash);
+              });
+              home(ipcRenderer, wrapperElm, base_url, version, resJson.sessionKey || '', resJson.validThru || null, login, sessionConfig, emailElm.value);
             } else {
               alertContainer.innerHTML = alertShow(resJson.message, 'danger');
               alertDismiss(alertTimeout, 'danger');

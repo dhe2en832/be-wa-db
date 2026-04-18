@@ -13,7 +13,7 @@ const {
   isHiddenElem,
 } = require('../../utils/stylesGenerator');
 
-function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validThru = null, loginFn = null, sessionConfig = {}) {
+function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validThru = null, loginFn = null, sessionConfig = {}, loggedInUser = '') {
   const pageHome = `
   <div class="container-fluid px-3">
       <!-- loading -->
@@ -71,6 +71,7 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
          <div class="col-md-12">
             <h5>Koneksi</h5>
             <div class="card pt-3 pb-2 px-3">
+               <p>Login sebagai : <span class="float-end text-primary fw-semibold" id="loggedInUser"></span></p>
                <p>Nomor Whatsapp : <span class="float-end" id="onlineNumber"></span></p>
                <p>Pengguna Whatsapp : <span class="float-end" id="onlineName"></span></p>
                <p>Platform Perangkat : <span class="float-end" id="onlinePlatform"></span></p>
@@ -79,8 +80,9 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
                <p>Durasi : <span class="float-end" id="onlineDuration">00:00:00</span></p>
                <div class="d-flex align-items-center border border-danger rounded px-2 py-1 mt-1">
                  <span class="text-muted me-2" style="white-space:nowrap;font-size:0.85rem;">Secret Key :</span>
-                 <span id="onlineSecretKey" class="flex-grow-1 text-truncate font-monospace" style="font-size:0.85rem;"></span>
-                 <button id="btnCopySecretKey" class="btn btn-sm btn-outline-danger ms-2 py-0 px-2" style="font-size:0.8rem;">cop</button>
+                 <span id="onlineSecretKey" class="flex-grow-1 text-truncate font-monospace" style="font-size:0.85rem;">••••••••••••••••••••••••••••••••</span>
+                 <button id="btnRevealSecretKey" class="btn btn-sm btn-outline-secondary ms-2 py-0 px-2" style="font-size:0.8rem;" title="Lihat Secret Key">👁</button>
+                 <button id="btnCopySecretKey" class="btn btn-sm btn-outline-danger ms-1 py-0 px-2" style="font-size:0.8rem;" disabled>cop</button>
                </div>
                <div class="d-flex align-items-center justify-content-between mt-2" style="font-size:0.85rem;">
                  <span class="text-muted">Session Berlaku Hingga :</span>
@@ -88,6 +90,20 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
                </div>
             </div>
          </div>
+
+      <!-- Modal verifikasi password untuk lihat secret key -->
+      <div id="modalVerifyPassword" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+        <div class="card p-4" style="width:320px;max-width:90%;">
+          <h6 class="mb-3">Verifikasi Password</h6>
+          <p class="text-muted small mb-3">Masukkan password login Anda untuk melihat Secret Key.</p>
+          <input type="password" id="verifyPasswordInput" class="form-control mb-2" placeholder="Password" />
+          <p id="verifyPasswordError" class="text-danger small mb-2" style="display:none;">Password salah.</p>
+          <div class="d-flex gap-2 justify-content-end mt-1">
+            <button id="btnVerifyCancel" class="btn btn-sm btn-secondary">Batal</button>
+            <button id="btnVerifyConfirm" class="btn btn-sm btn-primary">Konfirmasi</button>
+          </div>
+        </div>
+      </div>
          <div class="col-md-12 my-2">
             <h5>Aktivitas</h5>
             <div class="card pt-3 pb-2 px-3">
@@ -104,8 +120,54 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
     hideElem('#content');
     setElemText("#versionTagLoad", version);
 
-    // Isi secret key dan bind tombol copy
-    setElemText('#onlineSecretKey', secretKey);
+    // Tampilkan user yang login
+    setElemText('#loggedInUser', loggedInUser || localStorage.getItem('userID') || '-');
+
+    // Secret key disembunyikan — hanya tampil setelah verifikasi password
+    let secretKeyRevealed = false;
+
+    document.querySelector('#btnRevealSecretKey').addEventListener('click', () => {
+      if (secretKeyRevealed) {
+        // Sembunyikan kembali
+        document.querySelector('#onlineSecretKey').textContent = '••••••••••••••••••••••••••••••••';
+        document.querySelector('#btnCopySecretKey').disabled = true;
+        document.querySelector('#btnRevealSecretKey').title = 'Lihat Secret Key';
+        secretKeyRevealed = false;
+        return;
+      }
+      // Tampilkan modal verifikasi
+      const modal = document.querySelector('#modalVerifyPassword');
+      modal.style.display = 'flex';
+      document.querySelector('#verifyPasswordInput').value = '';
+      document.querySelector('#verifyPasswordError').style.display = 'none';
+      setTimeout(() => document.querySelector('#verifyPasswordInput').focus(), 100);
+    });
+
+    document.querySelector('#btnVerifyCancel').addEventListener('click', () => {
+      document.querySelector('#modalVerifyPassword').style.display = 'none';
+    });
+
+    document.querySelector('#btnVerifyConfirm').addEventListener('click', async () => {
+      const inputPw = document.querySelector('#verifyPasswordInput').value;
+      if (!inputPw) return;
+      const storedHash = localStorage.getItem('passwordHash');
+      const inputHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(inputPw))
+        .then((buf) => Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join(''));
+      if (inputHash === storedHash) {
+        document.querySelector('#modalVerifyPassword').style.display = 'none';
+        document.querySelector('#onlineSecretKey').textContent = secretKey;
+        document.querySelector('#btnCopySecretKey').disabled = false;
+        document.querySelector('#btnRevealSecretKey').title = 'Sembunyikan Secret Key';
+        secretKeyRevealed = true;
+      } else {
+        document.querySelector('#verifyPasswordError').style.display = 'block';
+      }
+    });
+
+    // Enter key di input password modal
+    document.querySelector('#verifyPasswordInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.querySelector('#btnVerifyConfirm').click();
+    });
 
     // Isi session valid thru
     function updateSessionValidThruDisplay(vt) {
@@ -125,7 +187,7 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
     }
     updateSessionValidThruDisplay(validThru);
     document.querySelector('#btnCopySecretKey').addEventListener('click', () => {
-      if (!secretKey) return;
+      if (!secretKey || !secretKeyRevealed) return;
       navigator.clipboard.writeText(secretKey).then(() => {
         const btn = document.querySelector('#btnCopySecretKey');
         btn.textContent = '✓';

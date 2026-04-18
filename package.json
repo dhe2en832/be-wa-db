@@ -28,7 +28,11 @@
     "dev": "env-cmd -f .env.origin yarn start",
     "prod:origin": "env-cmd -f .env.origin yarn build",
     "prod:bless": "env-cmd -f .env.bless yarn build && yarn copy && rm -rf dist_bless && mv dist dist_bless",
-    "prod:complete": "env-cmd -f .env.complete yarn build && yarn copy && rm -rf dist_complete && mv dist dist_complete"
+    "prod:complete": "env-cmd -f .env.complete yarn build && yarn copy && rm -rf dist_complete && mv dist dist_complete",
+    "changelog": "node generate-changelog.cjs",
+    "changelog:kemarin": "node generate-changelog.cjs --date=2026-04-17",
+    "changelog:monthly": "node generate-changelog.cjs --monthly",
+    "ship": "node git-push.cjs"
   },
   "author": "CSA Computer",
   "license": "MIT",
