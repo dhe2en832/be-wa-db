@@ -380,66 +380,199 @@ class DynamicChangelogGenerator {
         const f = (filePath || '').toLowerCase();
         const lines = (diff || '').split('\n');
 
-        // Pola spesifik per file
-        if (f.includes('session')) {
-            if (diff.includes('+') && diff.includes('passwordHash'))  changes.add('Tambah penyimpanan hash password');
-            if (diff.includes('hashPassword'))                         changes.add('Tambah fungsi hash password (SHA-256)');
-            if (diff.includes('getPasswordHash'))                      changes.add('Tambah getter hash password');
-            if (diff.includes('clearSession') && diff.includes('removeItem')) changes.add('Hapus hash password saat logout');
+        // ── Pola spesifik wacsa-md2 ──────────────────────────────────────────
+        // routes
+        if (f.includes('/routes/')) {
+            if (diff.includes('+') && diff.includes('router.') || diff.includes('app.get') || diff.includes('app.post')) changes.add('Tambah/ubah endpoint route');
+            if (diff.includes('middleware'))  changes.add('Tambah/ubah middleware pada route');
+            if (diff.includes('validator'))   changes.add('Tambah validasi input');
         }
-        if (f.includes('login')) {
-            if (diff.includes('hashPassword'))    changes.add('Hash password sebelum disimpan ke localStorage');
-            if (diff.includes('loggedInUser') || diff.includes('emailElm.value')) changes.add('Kirim email user ke halaman home');
+        // services
+        if (f.includes('/services/')) {
+            if (diff.includes('fetch(') || diff.includes('axios'))  changes.add('Tambah/ubah HTTP request ke API eksternal');
+            if (diff.includes('fs.readFile') || diff.includes('fs.writeFile')) changes.add('Tambah/ubah operasi baca/tulis file');
+            if (diff.includes('credentials')) changes.add('Ubah penanganan kredensial');
+            if (diff.includes('token') || diff.includes('sessionKey')) changes.add('Ubah penanganan token/session');
         }
-        if (f.includes('home')) {
-            if (diff.includes('loggedInUser'))          changes.add('Tampilkan nama user yang sedang login');
-            if (diff.includes('modalVerifyPassword'))   changes.add('Tambah modal verifikasi password untuk lihat secret key');
-            if (diff.includes('btnRevealSecretKey'))    changes.add('Tambah tombol reveal/hide secret key');
-            if (diff.includes('••••'))                  changes.add('Sembunyikan nilai secret key secara default');
-            if (diff.includes('disabled'))              changes.add('Disable tombol copy sampai password diverifikasi');
-            if (diff.includes('SHA-256') || diff.includes('crypto.subtle')) changes.add('Verifikasi password via SHA-256 di sisi client');
+        // whatsapp
+        if (f.includes('/whatsapp/')) {
+            if (diff.includes('client.on'))       changes.add('Tambah/ubah event listener WhatsApp');
+            if (diff.includes('sendMessage'))     changes.add('Tambah/ubah pengiriman pesan WhatsApp');
+            if (diff.includes('initialize'))      changes.add('Ubah inisialisasi WhatsApp client');
+            if (diff.includes('qr'))              changes.add('Ubah penanganan QR code');
+            if (diff.includes('messageCallback')) changes.add('Ubah callback pesan masuk');
         }
+        // logger / mutex
+        if (f.includes('/logger/') || f.includes('/mutex/')) {
+            if (diff.includes('writeFile') || diff.includes('appendFile')) changes.add('Ubah penulisan log/file');
+            if (diff.includes('Mutex') || diff.includes('mutex'))          changes.add('Ubah mekanisme mutex/lock file');
+        }
+        // middleware
+        if (f.includes('/middleware/')) {
+            if (diff.includes('req') && diff.includes('res')) changes.add('Tambah/ubah middleware Express');
+            if (diff.includes('cors'))   changes.add('Ubah konfigurasi CORS');
+            if (diff.includes('auth'))   changes.add('Ubah middleware autentikasi');
+        }
+        // utils
+        if (f.includes('/utils/')) {
+            if (f.includes('alert'))       changes.add('Ubah generator alert/notifikasi');
+            if (f.includes('datetime') || f.includes('date')) changes.add('Ubah format tanggal/waktu');
+            if (f.includes('duration'))    changes.add('Ubah kalkulasi durasi');
+            if (f.includes('phone'))       changes.add('Ubah formatter nomor telepon');
+            if (f.includes('random'))      changes.add('Ubah generator nilai acak');
+            if (f.includes('styles') || f.includes('style')) changes.add('Ubah helper manipulasi DOM/style');
+            if (f.includes('mutex'))       changes.add('Ubah validator mutex');
+        }
+        // renderer pages
+        if (f.includes('/pages/home')) {
+            if (diff.includes('loggedInUser'))         changes.add('Tampilkan nama user yang sedang login');
+            if (diff.includes('modalVerifyPassword'))  changes.add('Tambah modal verifikasi password untuk lihat secret key');
+            if (diff.includes('btnRevealSecretKey'))   changes.add('Tambah tombol reveal/hide secret key');
+            if (diff.includes('••••'))                 changes.add('Sembunyikan nilai secret key secara default');
+            if (diff.includes('sessionValidThru'))     changes.add('Ubah tampilan waktu berlaku session');
+            if (diff.includes('scheduleSessionRefresh') || diff.includes('doRefreshWithRetry')) changes.add('Ubah logika auto-refresh session');
+            if (diff.includes('handleSessionExpired')) changes.add('Ubah penanganan session expired');
+            if (diff.includes('ipcRenderer.on'))       changes.add('Tambah/ubah listener event dari main process');
+        }
+        if (f.includes('/pages/login')) {
+            if (diff.includes('hashPassword'))         changes.add('Hash password sebelum disimpan ke localStorage');
+            if (diff.includes('loggedInUser') || (diff.includes('emailElm') && diff.includes('home('))) changes.add('Kirim data user ke halaman home');
+            if (diff.includes('expiredMessage'))       changes.add('Tampilkan pesan session expired');
+            if (diff.includes('save-credentials'))     changes.add('Simpan kredensial via IPC ke main process');
+        }
+        if (f.includes('/services/session')) {
+            if (diff.includes('passwordHash'))         changes.add('Tambah penyimpanan hash password');
+            if (diff.includes('hashPassword'))         changes.add('Tambah fungsi hash password (SHA-256)');
+            if (diff.includes('getPasswordHash'))      changes.add('Tambah getter hash password');
+            if (diff.includes('clearSession') && diff.includes('removeItem')) changes.add('Bersihkan semua data session saat logout');
+        }
+        if (f.includes('/components/updater')) {
+            if (diff.includes('checkForUpdates') || diff.includes('autoUpdater')) changes.add('Ubah logika auto-update aplikasi');
+            if (diff.includes('download'))  changes.add('Ubah proses download update');
+            if (diff.includes('install'))   changes.add('Ubah proses instalasi update');
+        }
+        // app.js / index.js (electron main)
+        if (f.includes('app.js') || f.includes('index.js')) {
+            if (diff.includes('ipcMain.on') || diff.includes('ipcMain.handle')) changes.add('Tambah/ubah handler IPC di main process');
+            if (diff.includes('BrowserWindow'))  changes.add('Ubah konfigurasi BrowserWindow');
+            if (diff.includes('waClient'))       changes.add('Ubah inisialisasi/penanganan WhatsApp client');
+            if (diff.includes('login-succeed'))  changes.add('Ubah alur setelah login berhasil');
+            if (diff.includes('save-credentials')) changes.add('Ubah penyimpanan kredensial');
+        }
+        // styles
+        if (f.endsWith('.css') || f.endsWith('.scss')) {
+            if (diff.includes('color') || diff.includes('background')) changes.add('Ubah warna/background');
+            if (diff.includes('font'))    changes.add('Ubah tipografi/font');
+            if (diff.includes('display') || diff.includes('flex') || diff.includes('grid')) changes.add('Ubah layout');
+            if (diff.includes('margin') || diff.includes('padding')) changes.add('Ubah spacing');
+            if (diff.includes('@media'))  changes.add('Ubah responsive breakpoint');
+        }
+        // config files
         if (f.includes('package.json')) {
-            if (diff.includes('"changelog"'))   changes.add('Tambah script changelog');
-            if (diff.includes('"ship"'))        changes.add('Tambah script ship (git add + commit + push)');
-            if (diff.includes('"changelog:'))   changes.add('Tambah script changelog varian (kemarin, monthly)');
-        }
-        if (f.includes('credentials.json')) {
-            if (diff.includes('localUser'))  changes.add('Tambah field localUser');
-            if (diff.includes('"id": ""'))   changes.add('Reset field id');
+            if (diff.includes('"scripts"') || diff.match(/"\w+":\s*"node /)) changes.add('Tambah/ubah npm script');
+            if (diff.includes('"dependencies"') || diff.includes('"devDependencies"')) changes.add('Tambah/ubah dependency');
+            if (diff.includes('"version"')) changes.add('Update versi aplikasi');
+            if (diff.includes('"build"'))   changes.add('Ubah konfigurasi build electron-builder');
         }
         if (f.includes('wacsa.ini')) {
             if (diff.includes('AuthKeyValue')) changes.add('Update AuthKeyValue token');
+            if (diff.includes('Endpoint'))     changes.add('Ubah endpoint API');
+            if (diff.includes('AutoRefresh'))  changes.add('Ubah konfigurasi auto-refresh session');
+        }
+        if (f.includes('credentials.json')) {
+            if (diff.includes('localUser'))  changes.add('Tambah/ubah field localUser');
+            if (diff.includes('"token"'))    changes.add('Update token kredensial');
+            if (diff.includes('"id"'))       changes.add('Update ID kredensial');
         }
         if (f.includes('.cjs') || f.includes('generate-changelog') || f.includes('git-push')) {
-            if (diff.includes('categorizeFile'))    changes.add('Kategorisasi per-file (bukan per-commit)');
-            if (diff.includes('extractFunction'))   changes.add('Perbaiki ekstraksi deskripsi fungsi');
-            if (diff.includes('extractChanges'))    changes.add('Perbaiki deskripsi perubahan lebih spesifik');
-            if (diff.includes('git push'))          changes.add('Tambah auto git push');
-            if (diff.includes('buildCommitMessage')) changes.add('Generate commit message dari changelog');
+            if (diff.includes('categorizeFile'))     changes.add('Perbaiki kategorisasi per-file');
+            if (diff.includes('extractFunction'))    changes.add('Perbaiki ekstraksi deskripsi fungsi');
+            if (diff.includes('extractChanges'))     changes.add('Perbaiki deskripsi perubahan');
+            if (diff.includes('git push'))           changes.add('Tambah auto git push');
+            if (diff.includes('buildCommitMessage')) changes.add('Perbaiki format commit message');
         }
 
-        // Pola generik dari diff lines
+        // ── Pola generik (berlaku untuk semua project) ───────────────────────
         lines.forEach((line) => {
-            if (line.startsWith('+') && !line.startsWith('+++')) {
-                const c = line.substring(1);
-                if (c.includes('async function') || c.includes('async ('))  changes.add('Tambah fungsi async');
-                else if (c.match(/^\s*(export\s+)?function\s+\w+/))         changes.add('Tambah fungsi baru');
-                else if (c.match(/^\s*const\s+\w+\s*=\s*(\(|async)/))       changes.add('Tambah arrow function');
-                if (c.includes('import ') && c.includes('require'))         changes.add('Tambah import modul');
-                if (c.includes('addEventListener'))                          changes.add('Tambah event listener');
-                if (c.includes('ipcRenderer.send') || c.includes('ipcMain.on')) changes.add('Tambah komunikasi IPC');
-                if (c.includes('localStorage.setItem'))                     changes.add('Simpan data ke localStorage');
-                if (c.includes('localStorage.removeItem'))                  changes.add('Hapus data dari localStorage');
-                if (c.includes('fetch('))                                    changes.add('Tambah HTTP request');
+            const isAdd = line.startsWith('+') && !line.startsWith('+++');
+            const isDel = line.startsWith('-') && !line.startsWith('---');
+            if (!isAdd && !isDel) return;
+
+            const c = line.substring(1).trim();
+
+            if (isAdd) {
+                // Fungsi & class baru
+                if (c.match(/^(export\s+)?(async\s+)?function\s+\w+/))        changes.add(`Tambah fungsi: ${(c.match(/function\s+(\w+)/) || [])[1] || ''}`);
+                if (c.match(/^(export\s+)?class\s+\w+/))                       changes.add(`Tambah class: ${(c.match(/class\s+(\w+)/) || [])[1] || ''}`);
+                if (c.match(/^(export\s+)?(const|let)\s+\w+\s*=\s*(async\s*)?\(/)) changes.add(`Tambah fungsi: ${(c.match(/(const|let)\s+(\w+)/) || [])[2] || ''}`);
+
+                // Import / require
+                if (c.match(/^import\s+.+\s+from\s+['"]/) || c.match(/require\s*\(/)) {
+                    const mod = (c.match(/from\s+['"](.+?)['"]/) || c.match(/require\s*\(\s*['"](.+?)['"]/) || [])[1];
+                    if (mod) changes.add(`Import modul: ${path.basename(mod)}`);
+                }
+
+                // Event listener
+                if (c.includes('addEventListener'))  changes.add(`Tambah event listener: ${(c.match(/addEventListener\s*\(\s*['"](\w+)['"]/) || [])[1] || 'event'}`);
+                if (c.includes('.on('))              changes.add(`Tambah listener: ${(c.match(/\.on\s*\(\s*['"](.+?)['"]/) || [])[1] || 'event'}`);
+
+                // Storage
+                if (c.includes('localStorage.setItem'))    changes.add(`Simpan ke localStorage: ${(c.match(/setItem\s*\(\s*['"](.+?)['"]/) || [])[1] || ''}`);
+                if (c.includes('localStorage.removeItem')) changes.add(`Hapus dari localStorage: ${(c.match(/removeItem\s*\(\s*['"](.+?)['"]/) || [])[1] || ''}`);
+                if (c.includes('sessionStorage'))          changes.add('Tambah/ubah sessionStorage');
+
+                // HTTP
+                if (c.match(/fetch\s*\(/))   changes.add(`HTTP request: ${(c.match(/fetch\s*\(\s*['"](.+?)['"]/) || [])[1] || 'endpoint'}`);
+                if (c.includes('axios.get'))  changes.add('HTTP GET via axios');
+                if (c.includes('axios.post')) changes.add('HTTP POST via axios');
+
+                // DOM
+                if (c.includes('querySelector') || c.includes('getElementById')) {
+                    const sel = (c.match(/querySelector\s*\(\s*['"](.+?)['"]/) || c.match(/getElementById\s*\(\s*['"](.+?)['"]/) || [])[1];
+                    if (sel) changes.add(`Manipulasi DOM: ${sel}`);
+                }
+                if (c.includes('innerHTML') || c.includes('textContent')) changes.add('Update konten elemen DOM');
+                if (c.includes('classList.add') || c.includes('classList.remove') || c.includes('classList.toggle')) changes.add('Ubah CSS class elemen');
+                if (c.includes('style.display')) changes.add('Ubah visibilitas elemen');
+
+                // IPC Electron
+                if (c.includes('ipcRenderer.send'))    changes.add(`IPC send: ${(c.match(/ipcRenderer\.send\s*\(\s*['"](.+?)['"]/) || [])[1] || ''}`);
+                if (c.includes('ipcRenderer.invoke'))  changes.add(`IPC invoke: ${(c.match(/ipcRenderer\.invoke\s*\(\s*['"](.+?)['"]/) || [])[1] || ''}`);
+                if (c.includes('ipcMain.on'))          changes.add(`IPC handler: ${(c.match(/ipcMain\.on\s*\(\s*['"](.+?)['"]/) || [])[1] || ''}`);
+                if (c.includes('ipcMain.handle'))      changes.add(`IPC handle: ${(c.match(/ipcMain\.handle\s*\(\s*['"](.+?)['"]/) || [])[1] || ''}`);
+
+                // Crypto / security
+                if (c.includes('crypto.subtle') || c.includes('SHA-256')) changes.add('Tambah operasi kriptografi');
+                if (c.includes('bcrypt') || c.includes('hash'))           changes.add('Tambah hashing password');
+
+                // Error handling
+                if (c.match(/^try\s*\{/) || c.match(/catch\s*\(/))  changes.add('Tambah error handling');
+                if (c.includes('throw new'))                          changes.add('Tambah throw error');
+
+                // Async/await
+                if (c.includes('await ') && c.includes('async'))     changes.add('Tambah operasi async/await');
+
+                // Return / export
+                if (c.match(/^return\s+\{/) || c.match(/^module\.exports/)) changes.add('Ubah nilai return/export');
+
+                // setTimeout / setInterval
+                if (c.includes('setTimeout'))  changes.add('Tambah timer/delay');
+                if (c.includes('setInterval')) changes.add('Tambah interval/polling');
+                if (c.includes('clearTimeout') || c.includes('clearInterval')) changes.add('Bersihkan timer');
             }
-            if (line.startsWith('-') && !line.startsWith('---')) {
-                const c = line.substring(1);
-                if (c.includes('console.log')) changes.add('Hapus debug log');
+
+            if (isDel) {
+                if (c.includes('console.log') || c.includes('console.warn') || c.includes('console.error')) {
+                    changes.add('Hapus debug log');
+                }
             }
         });
 
-        const result = [...changes];
+        // Bersihkan label kosong (misal "Tambah fungsi: ")
+        const result = [...changes]
+            .map(s => s.replace(/:\s*$/, '').trim())
+            .filter(s => s.length > 3);
+
         return result.length > 0 ? result.join('; ') : 'Pembaruan kode';
     }
 
