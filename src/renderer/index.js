@@ -12,8 +12,29 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   if (btnClose) {
+    const modal = document.getElementById('modal-confirm-exit');
+    const btnCancel = document.getElementById('btn-exit-cancel');
+    const btnConfirm = document.getElementById('btn-exit-confirm');
+
     btnClose.addEventListener('click', () => {
+      modal.style.display = 'flex';
+      btnConfirm.focus();
+    });
+
+    btnCancel.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    btnConfirm.addEventListener('click', () => {
+      modal.style.display = 'none';
       window.WACSA_UI.close();
+    });
+
+    // Tutup modal dengan Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'flex') {
+        modal.style.display = 'none';
+      }
     });
   }
 
