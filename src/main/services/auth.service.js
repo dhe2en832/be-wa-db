@@ -82,17 +82,16 @@ async function login(credentials) {
 
     clearTimeout(timeoutId);
 
-    // console.log("[AUTH] Response status:", response.status);
-    // console.log("[AUTH] Response headers:", Object.fromEntries(response.headers.entries()));
-
     const sessionKey = response.headers.get("secretkey");
     const sessionID = response.headers.get("sessionid");
     
     const responseBody = await response.json();
-       // Log untuk debugging/logout via Postman
-    console.log("[AUTH] Login Success:");
-    console.log("[AUTH] secretkey (sessionKey):", sessionKey);
-    console.log("[AUTH] sessionid:", sessionID);
+    
+    // Log hanya untuk login dari wacsa-md2 UI
+    if (isLocalLogin) {
+      console.log("[AUTH] Login success for:", email);
+      console.log("[AUTH] sessionid:", sessionID);
+    }
 
     // Check response format from webcsa-v2
     if (responseBody.result !== true) {
@@ -115,7 +114,6 @@ async function login(credentials) {
 
     // credentials.json TIDAK ditulis dari sini — hanya ditulis via IPC 'save-credentials'
     // yang dipanggil dari renderer saat login dari wacsa-md2 UI
-    console.log("[AUTH] Login success for:", email);
 
     return {
       sessionKey,

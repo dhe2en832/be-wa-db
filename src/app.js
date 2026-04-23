@@ -67,6 +67,9 @@ SERVER.listen(PORT, function () {
         const autoRefresh = sessionConfig.AutoRefresh !== undefined
           ? String(sessionConfig.AutoRefresh).toLowerCase() !== 'false'
           : true;
+        const ignoreRefreshError = sessionConfig.IgnoreRefreshError !== undefined
+          ? String(sessionConfig.IgnoreRefreshError).toLowerCase() === 'true'
+          : false;
         win.webContents.send("dom-loaded", {
           port: PORT,
           version: versionTag,
@@ -75,6 +78,7 @@ SERVER.listen(PORT, function () {
             refreshBeforeExpire: parseInt(sessionConfig.RefreshBeforeExpire) || 30,
             refreshRetryMax: parseInt(sessionConfig.RefreshRetryMax) || 3,
             refreshRetryDelay: parseInt(sessionConfig.RefreshRetryDelay) || 5,
+            ignoreRefreshError,
           }
         });
       });

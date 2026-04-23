@@ -223,8 +223,9 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
     const SESSION_REFRESH_RETRY_MAX   = sessionConfig.refreshRetryMax   || 3;
     const SESSION_REFRESH_RETRY_DELAY = (sessionConfig.refreshRetryDelay || 5) * 1000;
     const SESSION_REFRESH_BEFORE_EXPIRE = sessionConfig.refreshBeforeExpire || 30;
+    const SESSION_IGNORE_REFRESH_ERROR = sessionConfig.ignoreRefreshError === true;
 
-    console.log(`[SESSION] Config — autoRefresh:${SESSION_AUTO_REFRESH}, beforeExpire:${SESSION_REFRESH_BEFORE_EXPIRE}s, retryMax:${SESSION_REFRESH_RETRY_MAX}, retryDelay:${SESSION_REFRESH_RETRY_DELAY/1000}s`);
+    console.log(`[SESSION] Config — autoRefresh:${SESSION_AUTO_REFRESH}, beforeExpire:${SESSION_REFRESH_BEFORE_EXPIRE}s, retryMax:${SESSION_REFRESH_RETRY_MAX}, retryDelay:${SESSION_REFRESH_RETRY_DELAY/1000}s, ignoreRefreshError:${SESSION_IGNORE_REFRESH_ERROR}`);
 
     let sessionTimer = null;
 
@@ -262,6 +263,19 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
           scheduleSessionRefresh(result.validThru);
         } else {
           console.warn(`[SESSION] Refresh gagal (attempt ${attempt}):`, result?.message);
+          
+          // Jika IgnoreRefreshError=true dan error adalah "Session Id tidak valid"
+          // maka abaikan error dan jangan logout (kemungkinan ada login dari aplikasi lain)
+          if (SESSION_IGNORE_REFRESH_ERROR && result?.message && result.message.includes('Session Id tidak valid')) {
+            console.log('[SESSION] IgnoreRefreshError=true, mengabaikan error "Session Id tidak valid"');
+            // Jadwalkan refresh berikutnya dengan delay yang lebih lama (2x normal)
+            const nextRefreshDelay = SESSION_REFRESH_BEFORE_EXPIRE * 2 * 1000;
+            console.log(`[SESSION] Jadwalkan refresh berikutnya dalam ${nextRefreshDelay/1000} detik`);
+            if (sessionTimer) clearTimeout(sessionTimer);
+            sessionTimer = setTimeout(() => doRefreshWithRetry(1), nextRefreshDelay);
+            return;
+          }
+          
           if (attempt < SESSION_REFRESH_RETRY_MAX) {
             setTimeout(() => doRefreshWithRetry(attempt + 1), SESSION_REFRESH_RETRY_DELAY);
           } else {
