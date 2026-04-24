@@ -12,3 +12,5 @@ wacsa-statistic.json
 .env*
 /src/credentials.json
 .wwebjs_cache
+credentials.json
+wacsa.ini
