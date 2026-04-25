@@ -261,6 +261,21 @@ async function refreshSession() {
 
     if (responseBody.result === true) {
       const newValidThru = responseBody.validthru || null;
+      
+      // Jika server mengembalikan secretkey baru, update credentials dan wacsa.ini
+      const newSecretKey = responseBody.onsuccess?.secretkey || responseBody.secretkey || null;
+      if (newSecretKey && newSecretKey !== secretkey) {
+        console.log("[AUTH] New secretkey received from refresh, updating credentials...");
+        // Update credentials.json
+        if (fs.existsSync(credentialsPath)) {
+          const updatedCreds = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
+          updatedCreds.token = newSecretKey;
+          fs.writeFileSync(credentialsPath, JSON.stringify(updatedCreds, null, 2));
+        }
+        // Update wacsa.ini AuthKeyValue
+        updateAuthKeyValue(newSecretKey);
+      }
+      
       return { success: true, validThru: newValidThru, message: "Session refreshed" };
     } else {
       const errorMsg = responseBody?.onfail?.cerror || responseBody?.message || "Refresh failed";
