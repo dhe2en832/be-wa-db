@@ -25,16 +25,15 @@ function messageRoutes(
   const saveToSentLog = async function (response, req) {
     if (!response) return;
     try {
-      if (response.fromMe) {
-        const remark = req.body?.remark;
-        response.remark = remark || "-";
-        response.mediaKey = response.mediaKey || "-";
-        await new Promise((resolve, reject) => {
-          sentFileHandle(resolve, reject, response, "post", 1);
-        });
-        // Naikkan counter UI terlepas dari apakah log berhasil ditulis ke file
-        win.webContents.send("sent_message", 1);
-      }
+      await errorLogger(`messageRoutes #sentLogDebug fromMe=${response.fromMe} type=${typeof response.fromMe} id=${response.id?._serialized || 'N/A'}`, win);
+      const remark = req.body?.remark;
+      response.remark = remark || "-";
+      response.mediaKey = response.mediaKey || "-";
+      await new Promise((resolve, reject) => {
+        sentFileHandle(resolve, reject, response, "post", 1);
+      });
+      // Naikkan counter UI — semua pesan di sini pasti dikirim dari server
+      win.webContents.send("sent_message", 1);
     } catch (error) {
       if (error.code === "ENOENT") {
         SENT_FILE_PATH = path.resolve(rootPath + "/wacsa-sent.json");
