@@ -204,28 +204,19 @@ function waListener(
     }
   });
 
-  // Logger Handle Move to Message Routes ::message.routes.js
-  // listenClient.on('message_create', async (send_msg) => {
-  //   try {
-  //     if (send_msg.fromMe) {
-  //       send_msg.mediaKey = send_msg.mediaKey || '-';
-  //       await new Promise((resolve, reject) => {
-  //         sentFileHandle(resolve, reject, send_msg, 'post', 1);
-  //       }).then((success) => {
-  //         if (success) {
-  //           win.webContents.send('sent_message', 1);
-  //         }
-  //       });
-  //     }
-  //   } catch (error) {
-  //     if (error.code === 'ENOENT') {
-  //       SENT_FILE_PATH = path.resolve(rootPath + '/wacsa-sent.json');
-  //       config.FolderLog.SentLogFolder = rootPath;
-  //       fs.writeFileSync(path.resolve(rootPath + '/wacsa.ini'), ini.stringify(config));
-  //     }
-  //     await errorLogger('listenClient #sentMessage' + error, win);
-  //   }
-  // });
+  // Counter pesan keluar dari HP langsung (bukan via API)
+  // message_create fires untuk semua pesan keluar — dari API maupun dari HP
+  // Untuk pesan dari API, counter sudah dinaikkan di message.routes.js
+  // Di sini hanya tangkap yang dari HP (fromMe=true tapi bukan isNewMsg dari API)
+  listenClient.on("message_create", async (send_msg) => {
+    try {
+      if (send_msg.fromMe) {
+        win.webContents.send("sent_message", 1);
+      }
+    } catch (error) {
+      await errorLogger("listenClient #sentMessageCreate" + error, win);
+    }
+  });
 
   listenClient.on("message_ack", async (status_msg, ack) => {
     try {

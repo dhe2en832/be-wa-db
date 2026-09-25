@@ -25,15 +25,12 @@ function messageRoutes(
   const saveToSentLog = async function (response, req) {
     if (!response) return;
     try {
-      await errorLogger(`messageRoutes #sentLogDebug fromMe=${response.fromMe} type=${typeof response.fromMe} id=${response.id?._serialized || 'N/A'}`, win);
       const remark = req.body?.remark;
       response.remark = remark || "-";
       response.mediaKey = response.mediaKey || "-";
       await new Promise((resolve, reject) => {
         sentFileHandle(resolve, reject, response, "post", 1);
       });
-      // Naikkan counter UI — semua pesan di sini pasti dikirim dari server
-      win.webContents.send("sent_message", 1);
     } catch (error) {
       if (error.code === "ENOENT") {
         SENT_FILE_PATH = path.resolve(rootPath + "/wacsa-sent.json");
@@ -130,7 +127,6 @@ function messageRoutes(
                         // console.log("[Reply] Error adding quotedMsg:", e.message);
                       }
                     }
-                    
                     res.status(200).json({
                       status: true,
                       response: response,
@@ -191,6 +187,8 @@ function messageRoutes(
             waClient
               .sendMessage(number, message, options)
               .then((response) => {
+                // Pesan berhasil terkirim — naikkan counter
+
                 // Add isForwarded flag to response for database storage
                 if (isForwarded) {
                   response.isForwarded = true;
@@ -386,7 +384,6 @@ function messageRoutes(
                   message: "Pesan media gagal terkirim (response undefined dari WhatsApp)",
                 });
               }
-
               res.status(200).json({
                 status: true,
                 response: response,

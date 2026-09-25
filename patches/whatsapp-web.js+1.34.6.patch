@@ -16,3 +16,19 @@ index 4fdc45d..cdc4d35 100644
          // Bot's won't reply if canonicalUrl is set (linking)
          if (botOptions) {
              delete message.canonicalUrl;
+@@ -371,6 +378,14 @@ exports.LoadUtils = () => {
+         await msgPromise;
+ 
+         if (options.waitUntilMsgSent) await sendMsgResultPromise;
+ 
+-        return window.Store.Msg.get(newMsgKey._serialized);
++        // newMsgKey._serialized menggunakan format @c.us, tapi WhatsApp menyimpan
++        // pesan dengan format @lid untuk Linked Devices. Coba lookup dengan @c.us
++        // dulu, kalau tidak ketemu ambil dari msgPromise langsung.
++        const msgByKey = window.Store.Msg.get(newMsgKey._serialized);
++        if (msgByKey) return msgByKey;
++
++        // Fallback: ambil pesan dari resolusi msgPromise
++        const msgFromPromise = await msgPromise;
++        return msgFromPromise || null;
+     };
