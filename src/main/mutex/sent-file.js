@@ -19,7 +19,7 @@ let SENT_FILE_PATH = path.resolve(
 const isDisabled = config.ServerOptions.disableSentLog || false;
 
 function sentFileHandle(resolve, reject, data, mode, count) {
-  if (isDisabled) return;
+  if (isDisabled) return resolve(false);
   mutexWithTimeoutSent
     .acquire()
     .then((release) => {

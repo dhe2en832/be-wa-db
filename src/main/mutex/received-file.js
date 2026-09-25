@@ -19,7 +19,7 @@ let RECEIVED_FILE_PATH = path.resolve(
 const isDisabled = config.ServerOptions.disableReceivedLog || false;
 
 function receivedFileHandle(resolve, reject, data, mode, count) {
-  if (isDisabled) return;
+  if (isDisabled) return resolve(false);
   mutexWithTimeoutReceived
     .acquire()
     .then((release) => {

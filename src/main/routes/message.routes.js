@@ -31,11 +31,9 @@ function messageRoutes(
         response.mediaKey = response.mediaKey || "-";
         await new Promise((resolve, reject) => {
           sentFileHandle(resolve, reject, response, "post", 1);
-        }).then((success) => {
-          if (success) {
-            win.webContents.send("sent_message", 1);
-          }
         });
+        // Naikkan counter UI terlepas dari apakah log berhasil ditulis ke file
+        win.webContents.send("sent_message", 1);
       }
     } catch (error) {
       if (error.code === "ENOENT") {

@@ -54,6 +54,12 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
                 <img class="mx-auto mb-4" src="" alt="Loading Whatsapp QR Code" id="qrcode" />
                 <p class="fw-lighter font-smaller text-info border border-info p-1">Jika gagal saat scan QR Code dari Whatsapp pada perangkat Android/IOS Anda, lakukan restart WACSA terlebih dahulu.</p>
             </div>
+         </div>
+      </div>
+
+      <!-- logs (selalu tampil selama belum connected) -->
+      <div id="logPanel" class="row">
+         <div class="col-md-12 px-3">
             <p class="h5 p-0 m-0">Logs:</p>
             <div class="d-flex flex-column justify-content-center logs log-custom text-muted overflow-auto"></div>
          </div>
@@ -417,6 +423,11 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
     });
 
     ipcRenderer.on('ready_client', (event, data) => {
+      // Stop timer loading, start timer durasi online
+      clearInterval(timeInterval);
+      timeStart = new Date();
+      timeInterval = setInterval(() => timeCounter('#onlineDuration'), 1000);
+
       // Reset teks loading ke default untuk siklus berikutnya (disconnect → reconnect)
       setElemHTML('.h4', 'Mohon Tunggu <br />Sedang Memuat QR Code');
       const loadingDesc = document.querySelector('#loading .fw-lighter.text-muted.font-smaller');
@@ -424,6 +435,7 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
 
       hideElem('#loading');
       hideElem('#app');
+      hideElem('#logPanel');
       showElem('#content');
       setElemHTML('.logs', '');
       setElemText('#rev_counter', data.totalReceived);
@@ -438,8 +450,12 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
       hideElem('#app');
       showElem('#loading');
 
+      // Mulai ulang timer agar user tahu sudah berapa lama proses loading
+      clearInterval(timeInterval);
       timeStart = new Date();
-      timeInterval = setInterval(() => timeCounter('#onlineDuration', 1000));
+      setElemText('#loadingDuration', '00:00:00');
+      timeInterval = setInterval(() => timeCounter('#loadingDuration'), 1000);
+
       const authCatch = alertShow('Anda telah terhubung dengan WACSA API.', 'success');
       appendElem('#alertContainer', authCatch);
       alertDismiss(5000, 'success');
@@ -454,6 +470,7 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
       showElem('#loading');
       hideElem('#app');
       hideElem('#content');
+      showElem('#logPanel');
       const disconnectedCatch = alertShow(
         'Whatsapp Telah Terputus, Silahkan Scan QR Code Kembali',
         'danger'

@@ -79,17 +79,21 @@ function waListener(
 
 
   listenClient.on("ready", async () => {
+    win.webContents.send("logs", "WhatsApp ready, memuat data statistik...");
     const stats = await statsLogger(STATS_FILE_PATH, win);
+    win.webContents.send("logs", "Data statistik dimuat, mengirim info client...");
     win.webContents.send("info_client", [
       listenClient.info.wid.user,
       listenClient.info.pushname,
       listenClient.info.platform,
       versionTag,
     ]);
+    win.webContents.send("logs", "Selesai, membuka halaman utama...");
     win.webContents.send("ready_client", stats);
   });
 
   listenClient.on("authenticated", () => {
+    win.webContents.send("logs", "Authenticated, menunggu WhatsApp siap...");
     win.webContents.send("authenticated_client");
   });
 
@@ -123,21 +127,21 @@ function waListener(
             ? "-"
             : data
           : "disabled";
-      const media = await receive_msg.downloadMedia();
+      const media = receive_msg.hasMedia ? await receive_msg.downloadMedia() : null;
       let qmObj;
       if (receive_msg.hasQuotedMsg) {
         const qmMsg = await receive_msg.getQuotedMessage();
-        const qmMedia = await qmMsg.downloadMedia();
+        const qmMedia = qmMsg.hasMedia ? await qmMsg.downloadMedia() : null;
         qmObj = {
           qm_body: qmMsg,
-          qm_base64: msgCheck(qmMsg.hasMedia, qmMsg.hasMedia && qmMedia.data),
+          qm_base64: msgCheck(qmMsg.hasMedia, qmMsg.hasMedia && qmMedia && qmMedia.data),
           qm_filename: msgCheck(
             qmMsg.hasMedia,
-            qmMsg.hasMedia && qmMedia.filename
+            qmMsg.hasMedia && qmMedia && qmMedia.filename
           ),
           qm_mimetype: msgCheck(
             qmMsg.hasMedia,
-            qmMsg.hasMedia && qmMedia.mimetype
+            qmMsg.hasMedia && qmMedia && qmMedia.mimetype
           ),
         };
       }
@@ -145,50 +149,48 @@ function waListener(
       receive_msg.quotedMsg = receive_msg.hasQuotedMsg ? qmObj : "-";
       receive_msg.base64 = msgCheck(
         receive_msg.hasMedia,
-        receive_msg.hasMedia && media.data
+        receive_msg.hasMedia && media && media.data
       );
       receive_msg.filename = msgCheck(
         receive_msg.hasMedia,
-        receive_msg.hasMedia && media.filename
+        receive_msg.hasMedia && media && media.filename
       );
       receive_msg.mimetype = msgCheck(
         receive_msg.hasMedia,
-        receive_msg.hasMedia && media.mimetype
+        receive_msg.hasMedia && media && media.mimetype
       );
       await new Promise((resolve, reject) => {
         receivedFileHandle(resolve, reject, receive_msg, "post", 1);
-      }).then(async (success) => {
-        if (success) {
-          win.webContents.send("received_message", 1);
-          if (config.CallbackAPI.MessageIncomingEndpoint !== "") {
-            try {
-              await messageCallback({
-                url: config.CallbackAPI.MessageIncomingEndpoint,
-                options: {
-                  method: "post",
-                  headers: {
-                    "Content-Type": "application/json",
-                    [config.CallbackAPI.AuthKey || undefined]:
-                      config.CallbackAPI.AuthValue || undefined,
-                  },
-                  body: JSON.stringify(
-                    { status: "Incoming", message: receive_msg },
-                    null,
-                    2
-                  ),
-                },
-                retry: config.CallbackAPI.RetryFailure || 3,
-                interval: config.CallbackAPI.IntervalFailure || 1,
-              });
-            } catch (error) {
-              await errorLogger(
-                "listenClient #incomingMessageCallback" + error,
-                win
-              );
-            }
-          }
-        }
       });
+      // Naikkan counter UI terlepas dari apakah log berhasil ditulis ke file
+      win.webContents.send("received_message", 1);
+      if (config.CallbackAPI.MessageIncomingEndpoint !== "") {
+        try {
+          await messageCallback({
+            url: config.CallbackAPI.MessageIncomingEndpoint,
+            options: {
+              method: "post",
+              headers: {
+                "Content-Type": "application/json",
+                [config.CallbackAPI.AuthKey || undefined]:
+                  config.CallbackAPI.AuthValue || undefined,
+              },
+              body: JSON.stringify(
+                { status: "Incoming", message: receive_msg },
+                null,
+                2
+              ),
+            },
+            retry: config.CallbackAPI.RetryFailure || 3,
+            interval: config.CallbackAPI.IntervalFailure || 1,
+          });
+        } catch (error) {
+          await errorLogger(
+            "listenClient #incomingMessageCallback" + error,
+            win
+          );
+        }
+      }
     } catch (error) {
       if (error.code === "ENOENT") {
         RECEIVED_FILE_PATH = path.resolve(rootPath + "/wacsa-received.json");
