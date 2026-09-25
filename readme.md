@@ -14,6 +14,7 @@ WACSA-MD ini juga sering disebut WA ENGINE dari CSA Computer.
 * docs, folder dokumentasi penggunaan dan development aplikasi
 * environment, folder aset tambahan untuk mode produksi
 * node_modules, folder library kode proyek
+* patches, folder file patch untuk library pihak ketiga (dikelola oleh patch-package)
 * session, folder penyimpanan session WACSA-MD
 * src, folder utama seluruh sumber kode WACSA-MD
   * images, folder aset gambar
@@ -133,4 +134,10 @@ sehingga chat OTP atau history pesan akan tampil ke user
 * Fitur: Konfigurasi session di wacsa.ini via seksi [SessionOptions] — AutoRefresh, RefreshBeforeExpire, RefreshRetryMax, RefreshRetryDelay
 * Sistem: Endpoint login/logout/refresh digabung menjadi satu key Endpoint di [AuthAPI]
 * Sistem: Session config dibaca dari main process dan dikirim ke renderer via IPC saat startup
+
+2026/09/01 - v0.35.260425
+* Perbaiki: Kirim pesan media gagal dengan error "Data passed to getter must include an id property (it's how we memoize) but got undefined"
+* Analisa: Bug ada di library whatsapp-web.js v1.34.6 — properti __x_id dari MediaData model ter-spread ke object Msg saat konstruksi, menimpa newMsgKey yang valid sehingga Msg.initialize gagal meresolvasi sender
+* Sistem: Implementasi patch-package untuk mempatch library secara permanen tanpa modifikasi langsung di node_modules
+* Sistem: patch diterapkan otomatis via postinstall script setiap yarn install, termasuk saat build production ke asar
 
