@@ -62,8 +62,30 @@ Saat build production, electron-builder mem-bundle seluruh source code dan node_
 **2. Library diinjeksikan ke browser Puppeteer**
 whatsapp-web.js bekerja dengan cara menginjeksikan kode JavaScript (`Utils.js`, dll) ke dalam halaman WhatsApp Web yang berjalan di Chromium. Kode injeksi ini sudah di-load saat Puppeteer pertama kali diinisialisasi dan tidak bisa di-hot-swap selama aplikasi berjalan.
 
+**Mengapa tidak bisa cek update library saat runtime?**
+Ada dua layer di whatsapp-web.js:
+
+| Layer | Isi | Bisa diupdate tanpa rebuild? |
+|-------|-----|------------------------------|
+| WWeb HTML | Halaman WhatsApp Web yang diload Puppeteer | Sebagian bisa, via webVersionCache di credentials.json |
+| Library JS (Utils.js, Client.js, dll) | Kode Node.js + injeksi ke browser | Tidak bisa — terkunci di dalam app.asar |
+
+Bugfix seperti `__x_id` dan `@lid fallback` ada di layer Library JS. Karena terkunci di asar, tidak ada cara untuk meng-update atau mengeceknya saat runtime tanpa rebuild. Bahkan jika WACSA berhasil mendeteksi ada versi library baru di npm, tidak ada yang bisa dilakukan dengan informasi itu selain menunggu developer melakukan rebuild dan deploy.
+
 **Cara penanganan saat ini:**
-Menggunakan `patch-package` — setiap bugfix dari library diterapkan sebagai file patch di folder `patches/`. Patch ini otomatis diapply saat `yarn install` dan saat build, sehingga kode yang masuk ke `app.asar` sudah dalam kondisi ter-patch. Jika ada bugfix baru dari library, alurnya adalah: terapkan patch → rebuild → deploy via electron-updater → client mendapat versi baru otomatis.
+Menggunakan `patch-package` — setiap bugfix dari library diterapkan sebagai file patch di folder `patches/`. Patch ini otomatis diapply saat `yarn install` dan saat build, sehingga kode yang masuk ke `app.asar` sudah dalam kondisi ter-patch.
+
+**Alur penanganan saat ada bug atau update library baru:**
+1. Bug ditemukan atau ada update library yang relevan
+2. Developer terapkan/update patch di `patches/whatsapp-web.js+x.x.x.patch`
+3. Bump versi di `package.json`
+4. Build ulang: `yarn prod:bless` atau `yarn prod:complete`
+5. Deploy installer baru ke server updater
+6. `electron-updater` di semua client pull versi baru otomatis saat WACSA dibuka
+
+**Yang perlu dipantau secara berkala:**
+* Watch commits di repo [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js) — khususnya perubahan di `src/util/Injected/Utils.js` dan `src/Client.js`
+* Pantau `wacsa-error.log` di folder instalasi client — jika muncul kembali error `Data passed to getter must include an id property` atau `sendMessage resolved to undefined`, itu sinyal WhatsApp berganti format internal dan patch perlu ditinjau ulang
 
 ## Log
 11/03/2022 - v0.9.3.rc.17
