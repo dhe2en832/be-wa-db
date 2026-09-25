@@ -18,9 +18,11 @@
   "devDependencies": {
     "electron": "32.2.3",
     "electron-builder": "24.13.3",
-    "env-cmd": "^10.1.0"
+    "env-cmd": "^10.1.0",
+    "patch-package": "^8.0.1"
   },
   "scripts": {
+    "postinstall": "patch-package",
     "makeCredentials": "node make-credentials.js",
     "start": "yarn makeCredentials && electron .",
     "build": "rm -rf dist && yarn makeCredentials && electron-builder",
