@@ -16,21 +16,23 @@
     "whatsapp-web.js": "^1.34.6"
   },
   "devDependencies": {
+    "copyfiles": "^2.4.1",
     "electron": "32.2.3",
     "electron-builder": "24.13.3",
     "env-cmd": "^10.1.0",
-    "patch-package": "^8.0.1"
+    "patch-package": "^8.0.1",
+    "rimraf": "^6.1.3"
   },
   "scripts": {
     "postinstall": "patch-package",
     "makeCredentials": "node make-credentials.js",
     "start": "yarn makeCredentials && electron .",
-    "build": "rm -rf dist && yarn makeCredentials && electron-builder",
-    "copy": "cp ./environment/ChromeSetup.exe dist/",
+    "build": "rimraf dist && yarn makeCredentials && electron-builder",
+    "copy": "copyfiles -f ./environment/ChromeSetup.exe dist/",
     "dev": "env-cmd -f .env.origin yarn start",
     "prod:origin": "env-cmd -f .env.origin yarn build",
-    "prod:bless": "env-cmd -f .env.bless yarn build && yarn copy && rm -rf dist_bless && mv dist dist_bless",
-    "prod:complete": "env-cmd -f .env.complete yarn build && yarn copy && rm -rf dist_complete && mv dist dist_complete",
+    "prod:bless": "env-cmd -f .env.bless yarn build && yarn copy && rimraf dist_bless && node -e \"const fs=require('fs');fs.renameSync('dist','dist_bless')\"",
+    "prod:complete": "env-cmd -f .env.complete yarn build && yarn copy && rimraf dist_complete && node -e \"const fs=require('fs');fs.renameSync('dist','dist_complete')\"",
     "changelog": "node generate-changelog.cjs",
     "changelog:kemarin": "node generate-changelog.cjs --date=2026-04-17",
     "changelog:monthly": "node generate-changelog.cjs --monthly",
