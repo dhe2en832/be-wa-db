@@ -417,6 +417,11 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
     });
 
     ipcRenderer.on('ready_client', (event, data) => {
+      // Reset teks loading ke default untuk siklus berikutnya (disconnect → reconnect)
+      setElemHTML('.h4', 'Mohon Tunggu <br />Sedang Memuat QR Code');
+      const loadingDesc = document.querySelector('#loading .fw-lighter.text-muted.font-smaller');
+      if (loadingDesc) loadingDesc.textContent = 'Jangan tutup aplikasi WACSA, proses ini membutuhkan waktu beberapa menit...';
+
       hideElem('#loading');
       hideElem('#app');
       showElem('#content');
@@ -426,6 +431,13 @@ function home(ipcRenderer, wrapperElm, base_url, version, secretKey = '', validT
     });
 
     ipcRenderer.on('authenticated_client', (event, args) => {
+      // Sembunyikan QR code, tampilkan spinner sambil tunggu ready
+      setElemText('.h4', 'Menghubungkan ke WhatsApp...');
+      const loadingDesc = document.querySelector('#loading .fw-lighter.text-muted.font-smaller');
+      if (loadingDesc) loadingDesc.textContent = 'QR Code berhasil discan, mohon tunggu sebentar...';
+      hideElem('#app');
+      showElem('#loading');
+
       timeStart = new Date();
       timeInterval = setInterval(() => timeCounter('#onlineDuration', 1000));
       const authCatch = alertShow('Anda telah terhubung dengan WACSA API.', 'success');
