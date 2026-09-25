@@ -23,6 +23,7 @@ function messageRoutes(
   };
 
   const saveToSentLog = async function (response, req) {
+    if (!response) return;
     try {
       if (response.fromMe) {
         const remark = req.body?.remark;
@@ -382,6 +383,13 @@ function messageRoutes(
           waClient
             .sendMessage(number, media, { caption: caption })
             .then((response) => {
+              if (!response) {
+                return res.status(500).json({
+                  status: false,
+                  message: "Pesan media gagal terkirim (response undefined dari WhatsApp)",
+                });
+              }
+
               res.status(200).json({
                 status: true,
                 response: response,
