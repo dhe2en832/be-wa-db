@@ -52,6 +52,19 @@ WACSA-MD ini juga sering disebut WA ENGINE dari CSA Computer.
 ## Library Utama
 [https://github.com/pedroslopez/whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js)
 
+## Keterbatasan Update Library
+
+WACSA tidak bisa otomatis memperbarui atau memperbaiki bug dari library whatsapp-web.js saat aplikasi sudah berjalan sebagai exe. Ada dua alasan mendasar:
+
+**1. Kode library terkunci di dalam app.asar**
+Saat build production, electron-builder mem-bundle seluruh source code dan node_modules ke dalam satu file terenkripsi bernama `app.asar`. File ini bersifat read-only saat runtime — tidak bisa dimodifikasi dari dalam aplikasi. Artinya meski ada bugfix dari library, file yang sudah ter-bundle tidak bisa diganti tanpa rebuild.
+
+**2. Library diinjeksikan ke browser Puppeteer**
+whatsapp-web.js bekerja dengan cara menginjeksikan kode JavaScript (`Utils.js`, dll) ke dalam halaman WhatsApp Web yang berjalan di Chromium. Kode injeksi ini sudah di-load saat Puppeteer pertama kali diinisialisasi dan tidak bisa di-hot-swap selama aplikasi berjalan.
+
+**Cara penanganan saat ini:**
+Menggunakan `patch-package` — setiap bugfix dari library diterapkan sebagai file patch di folder `patches/`. Patch ini otomatis diapply saat `yarn install` dan saat build, sehingga kode yang masuk ke `app.asar` sudah dalam kondisi ter-patch. Jika ada bugfix baru dari library, alurnya adalah: terapkan patch → rebuild → deploy via electron-updater → client mendapat versi baru otomatis.
+
 ## Log
 11/03/2022 - v0.9.3.rc.17
 * Fitur: Tambah sistem penyimpanan untuk Multi Device
@@ -140,4 +153,16 @@ sehingga chat OTP atau history pesan akan tampil ke user
 * Analisa: Bug ada di library whatsapp-web.js v1.34.6 — properti __x_id dari MediaData model ter-spread ke object Msg saat konstruksi, menimpa newMsgKey yang valid sehingga Msg.initialize gagal meresolvasi sender
 * Sistem: Implementasi patch-package untuk mempatch library secara permanen tanpa modifikasi langsung di node_modules
 * Sistem: patch diterapkan otomatis via postinstall script setiap yarn install, termasuk saat build production ke asar
+
+2026/09/25 - v0.36.260925
+* Perbaiki: Counter "Pesan Masuk" hanya naik satu kali — downloadMedia() dipanggil tanpa guard hasMedia, throw untuk pesan teks menyebabkan counter tidak naik di pesan berikutnya
+* Perbaiki: Counter "Pesan Keluar" tidak pernah naik — sentFileHandle early return tanpa resolve/reject saat disableSentLog=true menyebabkan Promise hang selamanya
+* Perbaiki: response sendMessage selalu undefined untuk pesan teks — WhatsApp kini menggunakan format ID @lid (Linked Device ID) untuk Linked Devices, sementara newMsgKey._serialized masih menggunakan format @c.us; window.Store.Msg.get() tidak menemukan pesan; fix dengan fallback ke msgPromise langsung
+* Perbaiki: Counter "Pesan Keluar" dari HP tidak naik — reaktifkan event message_create untuk menangkap semua pesan keluar (dari API maupun dari HP), counter dipindahkan sepenuhnya ke sini agar tidak dobel
+* Perbaiki: QR Code tidak langsung hilang setelah scan — tambah handler di event authenticated_client untuk sembunyikan QR dan tampilkan spinner "Menghubungkan ke WhatsApp..." sambil menunggu event ready
+* Perbaiki: Perintah build gagal di Windows (rm not recognized) — ganti rm -rf dan mv dengan rimraf dan fs.renameSync yang cross-platform
+* Fitur: Log panel dipindahkan ke luar #app agar tetap tampil saat QR maupun saat spinner connecting
+* Fitur: Timer "Waktu Berlalu" aktif saat spinner connecting agar user tahu durasi proses
+* Fitur: Log informatif di event ready (tahap memuat statistik, info client) untuk memudahkan diagnosa jika loading lama
+* Sistem: patch whatsapp-web.js diperluas — mencakup fix __x_id (Utils.js) dan fix @lid fallback (Utils.js)
 
