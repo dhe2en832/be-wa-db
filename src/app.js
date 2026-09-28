@@ -56,11 +56,23 @@ SERVER.listen(PORT, function () {
           nodeIntegration: false,
           contextIsolation: true,
           sandbox: false,
-          devTools: !app.isPackaged,
+          devTools: true,
           preload: path.join(__dirname, "renderer", "preload.js"),
         }
       });
       win.loadFile(path.join(__dirname, "/index.html"));
+
+      // F12 untuk toggle DevTools (renderer console)
+      win.webContents.on("before-input-event", (event, input) => {
+        if (input.key === "F12") {
+          if (win.webContents.isDevToolsOpened()) {
+            win.webContents.closeDevTools();
+          } else {
+            win.webContents.openDevTools({ mode: "detach" });
+          }
+        }
+      });
+
       win.webContents.once("dom-ready", () => {
         // Baca session config dari wacsa.ini dan kirim ke renderer
         const sessionConfig = config.SessionOptions || {};
