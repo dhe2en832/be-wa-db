@@ -76,7 +76,10 @@ function waListener(
   });
 
 
+  let authenticatedSent = false;
+
   listenClient.on("ready", async () => {
+    authenticatedSent = false; // reset untuk siklus berikutnya (disconnect → reconnect)
     win.webContents.send("logs", "WhatsApp ready, memuat data statistik...");
     const stats = await statsLogger(STATS_FILE_PATH, win);
     win.webContents.send("logs", "Data statistik dimuat, mengirim info client...");
@@ -91,6 +94,8 @@ function waListener(
   });
 
   listenClient.on("authenticated", () => {
+    if (authenticatedSent) return;
+    authenticatedSent = true;
     win.webContents.send("logs", "Authenticated, menunggu WhatsApp siap...");
     win.webContents.send("authenticated_client");
   });
