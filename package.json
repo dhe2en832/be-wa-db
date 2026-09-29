@@ -1,6 +1,6 @@
 {
   "name": "wacsa",
-  "version": "0.36.260925.1",
+  "version": "0.36.260925",
   "description": "Whatsapp API, Powered By CSA Computer",
   "main": "src/app.js",
   "dependencies": {
