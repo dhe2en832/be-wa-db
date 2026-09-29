@@ -92,7 +92,6 @@ function login(ipcRenderer, wrapperElm, base_url, version, icons, home, sessionC
                 token: resJson.sessionKey,
                 id: emailElm.value,
                 sessionid: resJson.sessionID || '',
-                password: passwordElm.value,
               });
               // Hash password dan simpan ke localStorage (password asli tidak disimpan)
               hashPassword(passwordElm.value).then((pwHash) => {

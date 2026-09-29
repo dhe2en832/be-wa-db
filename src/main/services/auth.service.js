@@ -212,13 +212,9 @@ async function logout(options = {}) {
 
 /**
  * Refresh session ke server auth.
- * Karena server tidak support action "refresh", alurnya adalah:
- * 1. Logout session lama (action: "logout")
- * 2. Login ulang (action: "login") dengan secretkey + password
  * Mengembalikan { success, validThru, message }
- * @param {string|null} password - Password terdeskirpsi dari safeStorage (opsional, fallback ke secretkey-only jika null)
  */
-async function refreshSession(password = null) {
+async function refreshSession() {
   const authConfig = config.AuthAPI || {};
   const refreshEndpoint = authConfig.Endpoint;
 
@@ -240,79 +236,46 @@ async function refreshSession(password = null) {
     return { success: false, message: "No active credentials to refresh" };
   }
 
-  const timeout = parseInt(authConfig.Timeout) || 10;
-
   try {
-    // Step 1: Logout session lama agar slot tersedia
-    console.log("[AUTH] Refresh: logout session lama...");
-    const logoutController = new AbortController();
-    const logoutTimeout = setTimeout(() => logoutController.abort(), timeout * 1000);
-
-    try {
-      await fetch(refreshEndpoint, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-user": xuser,
-          "secretkey": secretkey,
-          "sessionid": sessionid || "",
-        },
-        body: JSON.stringify({ action: "logout" }),
-        signal: logoutController.signal,
-      });
-    } catch(e) {
-      // Abaikan error logout — tetap lanjut ke login
-      console.warn("[AUTH] Refresh: logout gagal (diabaikan):", e.message);
-    } finally {
-      clearTimeout(logoutTimeout);
-    }
-
-    // Step 2: Login ulang dengan secretkey + password
-    console.log("[AUTH] Refresh: login ulang...");
-    const loginController = new AbortController();
-    const loginTimeout = setTimeout(() => loginController.abort(), timeout * 1000);
-
-    const loginHeaders = {
-      "content-type": "application/json",
-      "x-user": xuser,
-      "secretkey": secretkey,
-      "sessionid": sessionid || "",
-    };
-
-    // Sertakan x-password jika tersedia
-    if (password) {
-      loginHeaders["x-password"] = password;
-    }
+    const timeout = parseInt(authConfig.Timeout) || 10;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout * 1000);
 
     const response = await fetch(refreshEndpoint, {
       method: "POST",
-      headers: loginHeaders,
-      body: JSON.stringify({ action: "login" }),
-      signal: loginController.signal,
+      headers: {
+        "content-type": "application/json",
+        "x-user": xuser,
+        "secretkey": secretkey,
+        "sessionid": sessionid || "",
+      },
+      body: JSON.stringify({ action: "refresh" }),
+      signal: controller.signal,
     });
 
-    clearTimeout(loginTimeout);
+    clearTimeout(timeoutId);
 
     const responseBody = await response.json();
-    console.log("[AUTH] Refresh (re-login) response:", JSON.stringify(responseBody));
+    console.log("[AUTH] Refresh response:", JSON.stringify(responseBody));
 
     if (responseBody.result === true) {
       const newValidThru = responseBody.validthru || null;
 
-      // Jika server mengembalikan sessionid baru, update credentials.json
-      const newSessionId = response.headers.get("sessionid") || null;
-      if (newSessionId && newSessionId !== sessionid) {
+      // Jika server mengembalikan secretkey baru, update credentials dan wacsa.ini
+      const newSecretKey = responseBody.onsuccess?.secretkey || responseBody.secretkey || null;
+      if (newSecretKey && newSecretKey !== secretkey) {
+        console.log("[AUTH] New secretkey received from refresh, updating credentials...");
         if (fs.existsSync(credentialsPath)) {
           const updatedCreds = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
-          updatedCreds.sessionid = newSessionId;
+          updatedCreds.token = newSecretKey;
           fs.writeFileSync(credentialsPath, JSON.stringify(updatedCreds, null, 2));
-          console.log("[AUTH] Refresh: sessionid baru disimpan:", newSessionId);
         }
+        updateAuthKeyValue(newSecretKey);
       }
 
       return { success: true, validThru: newValidThru, message: "Session refreshed" };
     } else {
-      const errorMsg = responseBody?.onfail?.cerror || responseBody?.message || "Re-login failed";
+      const errorMsg = responseBody?.onfail?.cerror || responseBody?.message || "Refresh failed";
       return { success: false, message: errorMsg };
     }
   } catch (error) {

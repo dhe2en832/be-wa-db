@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const ini = require("ini");
-const { app, BrowserWindow, ipcMain, dialog, safeStorage } = require("electron/main");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron/main");
 const { autoUpdater } = require("electron-updater");
 const {
   config,
@@ -167,7 +167,7 @@ SERVER.listen(PORT, function () {
         }
       });
 
-      ipcMain.on("save-credentials", (event, { token, id, sessionid, password }) => {
+      ipcMain.on("save-credentials", (event, { token, id, sessionid }) => {
         try {
           const credPath = path.resolve(rootPath + "/credentials.json");
           let creds = {};
@@ -181,18 +181,6 @@ SERVER.listen(PORT, function () {
           fs.writeFileSync(credPath, JSON.stringify(creds, null, 2));
           authService.updateAuthKeyValue(token);
           console.log("[APP] Credentials saved from local login, token:", token);
-
-          // Enkripsi dan simpan password untuk keperluan auto-refresh session
-          if (password && safeStorage.isEncryptionAvailable()) {
-            try {
-              const encrypted = safeStorage.encryptString(password);
-              const authBinPath = path.resolve(rootPath + "/wacsa-auth.bin");
-              fs.writeFileSync(authBinPath, encrypted);
-              console.log("[APP] Password encrypted and saved to wacsa-auth.bin");
-            } catch (encErr) {
-              console.error("[APP] Failed to encrypt password:", encErr.message);
-            }
-          }
         } catch (error) {
           console.error("[APP] Failed to save credentials:", error);
         }
@@ -201,18 +189,7 @@ SERVER.listen(PORT, function () {
       // Session refresh — dipanggil dari renderer saat mendekati waktu expire
       ipcMain.handle("session-refresh", async () => {
         try {
-          // Baca dan dekripsi password untuk keperluan re-login
-          let decryptedPassword = null;
-          const authBinPath = path.resolve(rootPath + "/wacsa-auth.bin");
-          if (fs.existsSync(authBinPath) && safeStorage.isEncryptionAvailable()) {
-            try {
-              const encrypted = fs.readFileSync(authBinPath);
-              decryptedPassword = safeStorage.decryptString(encrypted);
-            } catch (decErr) {
-              console.error("[APP] Failed to decrypt password:", decErr.message);
-            }
-          }
-          const result = await authService.refreshSession(decryptedPassword);
+          const result = await authService.refreshSession();
           console.log("[APP] Session refresh result:", result);
           return result;
         } catch (error) {

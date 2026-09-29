@@ -188,3 +188,237 @@ sehingga chat OTP atau history pesan akan tampil ke user
 * Fitur: Log informatif di event ready (tahap memuat statistik, info client) untuk memudahkan diagnosa jika loading lama
 * Sistem: patch whatsapp-web.js diperluas — mencakup fix __x_id (Utils.js) dan fix @lid fallback (Utils.js)
 
+2026/09/28 - v0.36.260928
+* Fitur: Auto-refresh session menggunakan action "refresh" ke endpoint login_x — session diperpanjang otomatis tanpa user perlu login ulang
+* Fitur: DevTools renderer bisa dibuka via F12 di semua mode (development maupun production exe)
+* Perbaiki: logout otomatis berulang — penyebabnya endpoint login_x belum support action "refresh", sudah diselesaikan dari sisi server; implementasi refresh dikembalikan ke action "refresh" yang simpel
+* Sistem: IgnoreRefreshError di wacsa.ini diset false — karena secretkey dedicated untuk WACSA, error session invalid harus ditangani dengan logout, bukan diabaikan
+
+## Catatan Teknis: Alternatif Refresh Session (jika action "refresh" tidak tersedia)
+
+Jika di kemudian hari endpoint login_x tidak lagi support action "refresh", ada dua alternatif yang pernah diimplementasikan dan bisa diaktifkan kembali:
+
+**Alternatif A — Logout lalu Login ulang (tanpa password)**
+Pernah dicoba saat server belum support action "refresh". Alurnya:
+1. Kirim `{ action: "logout" }` ke login_x untuk bebaskan slot session lama
+2. Kirim `{ action: "login" }` dengan secretkey yang sama (tanpa password) untuk login ulang
+
+Ternyata gagal karena server memerlukan password untuk action "login". Kode ini tidak ada di repo tapi bisa direkonstruksi di `auth.service.js` fungsi `refreshSession()`.
+
+**Alternatif B — Logout lalu Login ulang (dengan password terenkripsi)**
+Solusi lengkap menggunakan `safeStorage` bawaan Electron (enkripsi OS-level / Windows DPAPI).
+Password dienkripsi saat user login dan disimpan ke `wacsa-auth.bin`. Saat refresh, password dibaca, didekripsi, lalu dikirim ke server.
+
+File yang perlu diubah:
+
+---
+
+### 1. `src/app.js`
+
+**Tambahkan `safeStorage` ke import electron:**
+```js
+// SEBELUM:
+const { app, BrowserWindow, ipcMain, dialog } = require("electron/main");
+
+// SESUDAH:
+const { app, BrowserWindow, ipcMain, dialog, safeStorage } = require("electron/main");
+```
+
+**Ubah `save-credentials` IPC untuk terima dan enkripsi password:**
+```js
+// SEBELUM:
+ipcMain.on("save-credentials", (event, { token, id, sessionid }) => {
+  try {
+    // ... (kode simpan credentials.json)
+    authService.updateAuthKeyValue(token);
+    console.log("[APP] Credentials saved from local login, token:", token);
+  } catch (error) {
+    console.error("[APP] Failed to save credentials:", error);
+  }
+});
+
+// SESUDAH — tambahkan blok enkripsi setelah console.log:
+ipcMain.on("save-credentials", (event, { token, id, sessionid, password }) => {
+  try {
+    // ... (kode simpan credentials.json — tidak berubah)
+    authService.updateAuthKeyValue(token);
+    console.log("[APP] Credentials saved from local login, token:", token);
+
+    // Enkripsi dan simpan password untuk keperluan auto-refresh session
+    if (password && safeStorage.isEncryptionAvailable()) {
+      try {
+        const encrypted = safeStorage.encryptString(password);
+        const authBinPath = path.resolve(rootPath + "/wacsa-auth.bin");
+        fs.writeFileSync(authBinPath, encrypted);
+        console.log("[APP] Password encrypted and saved to wacsa-auth.bin");
+      } catch (encErr) {
+        console.error("[APP] Failed to encrypt password:", encErr.message);
+      }
+    }
+  } catch (error) {
+    console.error("[APP] Failed to save credentials:", error);
+  }
+});
+```
+
+**Ubah `session-refresh` IPC handler untuk dekripsi password:**
+```js
+// SEBELUM:
+ipcMain.handle("session-refresh", async () => {
+  try {
+    const result = await authService.refreshSession();
+    console.log("[APP] Session refresh result:", result);
+
+// SESUDAH:
+ipcMain.handle("session-refresh", async () => {
+  try {
+    let decryptedPassword = null;
+    const authBinPath = path.resolve(rootPath + "/wacsa-auth.bin");
+    if (fs.existsSync(authBinPath) && safeStorage.isEncryptionAvailable()) {
+      try {
+        const encrypted = fs.readFileSync(authBinPath);
+        decryptedPassword = safeStorage.decryptString(encrypted);
+      } catch (decErr) {
+        console.error("[APP] Failed to decrypt password:", decErr.message);
+      }
+    }
+    const result = await authService.refreshSession(decryptedPassword);
+    console.log("[APP] Session refresh result:", result);
+```
+
+---
+
+### 2. `src/main/services/auth.service.js`
+
+**Ganti seluruh fungsi `refreshSession` dengan versi berikut:**
+```js
+/**
+ * Refresh session ke server auth.
+ * Karena server tidak support action "refresh", alurnya adalah:
+ * 1. Logout session lama (action: "logout") agar slot tersedia
+ * 2. Login ulang (action: "login") dengan secretkey + password
+ * Mengembalikan { success, validThru, message }
+ * @param {string|null} password - Password terdekripsi dari safeStorage
+ */
+async function refreshSession(password = null) {
+  const authConfig = config.AuthAPI || {};
+  const refreshEndpoint = authConfig.Endpoint;
+
+  if (!refreshEndpoint) {
+    return { success: true, validThru: null, message: "No refresh endpoint configured" };
+  }
+
+  const credentialsPath = path.resolve(rootPath + "/credentials.json");
+  let creds = {};
+  if (fs.existsSync(credentialsPath)) {
+    try { creds = JSON.parse(fs.readFileSync(credentialsPath, "utf8")); } catch(e) {}
+  }
+
+  const secretkey = creds.token;
+  const xuser = creds.id;
+  const sessionid = creds.sessionid;
+
+  if (!secretkey || !xuser) {
+    return { success: false, message: "No active credentials to refresh" };
+  }
+
+  const timeout = parseInt(authConfig.Timeout) || 10;
+
+  try {
+    // Step 1: Logout session lama agar slot tersedia
+    const logoutController = new AbortController();
+    const logoutTimeout = setTimeout(() => logoutController.abort(), timeout * 1000);
+    try {
+      await fetch(refreshEndpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-user": xuser,
+          "secretkey": secretkey,
+          "sessionid": sessionid || "",
+        },
+        body: JSON.stringify({ action: "logout" }),
+        signal: logoutController.signal,
+      });
+    } catch(e) {
+      console.warn("[AUTH] Refresh: logout gagal (diabaikan):", e.message);
+    } finally {
+      clearTimeout(logoutTimeout);
+    }
+
+    // Step 2: Login ulang dengan secretkey + password
+    const loginController = new AbortController();
+    const loginTimeout = setTimeout(() => loginController.abort(), timeout * 1000);
+
+    const loginHeaders = {
+      "content-type": "application/json",
+      "x-user": xuser,
+      "secretkey": secretkey,
+      "sessionid": sessionid || "",
+    };
+    if (password) loginHeaders["x-password"] = password;
+
+    const response = await fetch(refreshEndpoint, {
+      method: "POST",
+      headers: loginHeaders,
+      body: JSON.stringify({ action: "login" }),
+      signal: loginController.signal,
+    });
+
+    clearTimeout(loginTimeout);
+
+    const responseBody = await response.json();
+    console.log("[AUTH] Refresh (re-login) response:", JSON.stringify(responseBody));
+
+    if (responseBody.result === true) {
+      const newValidThru = responseBody.validthru || null;
+      const newSessionId = response.headers.get("sessionid") || null;
+      if (newSessionId && newSessionId !== sessionid && fs.existsSync(credentialsPath)) {
+        const updatedCreds = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
+        updatedCreds.sessionid = newSessionId;
+        fs.writeFileSync(credentialsPath, JSON.stringify(updatedCreds, null, 2));
+      }
+      return { success: true, validThru: newValidThru, message: "Session refreshed" };
+    } else {
+      const errorMsg = responseBody?.onfail?.cerror || responseBody?.message || "Re-login failed";
+      return { success: false, message: errorMsg };
+    }
+  } catch (error) {
+    return { success: false, message: `Refresh failed: ${error.message}` };
+  }
+}
+```
+
+---
+
+### 3. `src/renderer/pages/login.js`
+
+**Tambahkan field `password` ke `save-credentials` IPC:**
+```js
+// SEBELUM:
+ipcRenderer.send('save-credentials', {
+  token: resJson.sessionKey,
+  id: emailElm.value,
+  sessionid: resJson.sessionID || '',
+});
+
+// SESUDAH:
+ipcRenderer.send('save-credentials', {
+  token: resJson.sessionKey,
+  id: emailElm.value,
+  sessionid: resJson.sessionID || '',
+  password: passwordElm.value,
+});
+```
+
+---
+
+### 4. `.gitignore`
+
+**Tambahkan baris berikut** agar file password terenkripsi tidak masuk ke git:
+```
+wacsa-auth.bin
+```
+
+> **Catatan keamanan:** `wacsa-auth.bin` dienkripsi dengan Windows DPAPI via Electron `safeStorage` — file ini hanya bisa didekripsi di mesin dan user account Windows yang sama. Tidak bisa dibaca di mesin lain meski file dicopy.
+
