@@ -66,8 +66,6 @@ function waListener(
   win.webContents.send("logs", "Sedang Menghubungkan...");
 
   listenClient.on("qr", (qr) => {
-    win.webContents.send("disconnected_client");
-
     qrcode.toDataURL(qr, (err, url) => {
       win.webContents.send("qr_client", url);
       win.webContents.send(

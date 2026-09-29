@@ -154,6 +154,8 @@ SERVER.listen(PORT, function () {
 
       ipcMain.on("login-succeed", async (event, arg) => {
         try {
+          // Destroy dulu untuk pastikan state bersih sebelum initialize ulang
+          try { await waClient.destroy(); } catch(e) { /* abaikan jika belum pernah init */ }
           if (fs.existsSync(waWorker)) {
             fs.rmdirSync(waWorker, { recursive: true });
           }
