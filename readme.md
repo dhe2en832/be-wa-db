@@ -77,7 +77,7 @@ Menggunakan `patch-package` — setiap bugfix dari library diterapkan sebagai fi
 
 **Alur penanganan saat ada bug atau update library baru:**
 1. Bug ditemukan atau ada update library yang relevan
-2. Developer terapkan/update patch di `patches/whatsapp-web.js+x.x.x.patch`
+2. Jalankan `yarn upgrade:wwebjs` — script otomatis upgrade dan apply patch
 3. Bump versi di `package.json`
 4. Build ulang: `yarn prod:bless` atau `yarn prod:complete`
 5. Deploy installer baru ke server updater
@@ -86,6 +86,61 @@ Menggunakan `patch-package` — setiap bugfix dari library diterapkan sebagai fi
 **Yang perlu dipantau secara berkala:**
 * Watch commits di repo [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js) — khususnya perubahan di `src/util/Injected/Utils.js` dan `src/Client.js`
 * Pantau `wacsa-error.log` di folder instalasi client — jika muncul kembali error `Data passed to getter must include an id property` atau `sendMessage resolved to undefined`, itu sinyal WhatsApp berganti format internal dan patch perlu ditinjau ulang
+
+## Upgrade Library whatsapp-web.js
+
+Script `scripts/upgrade-wwebjs.js` menangani upgrade library beserta patch secara otomatis.
+
+**Cek versi dan apply patch (tanpa upgrade):**
+```powershell
+yarn postinstall
+# atau langsung:
+node scripts/upgrade-wwebjs.js --patch-only
+```
+Dijalankan otomatis setiap `yarn install`.
+
+**Upgrade ke versi terbaru di npm + apply patch:**
+```powershell
+yarn upgrade:wwebjs
+```
+Script akan:
+1. Cek versi terinstall vs versi terbaru di npm
+2. Jika ada versi baru — jalankan `yarn add whatsapp-web.js@x.x.x`
+3. Apply kedua patch kustom (`__x_id` dan `@lid fallback`) ke `node_modules`
+4. Generate file patch baru di folder `patches/`
+5. Hapus patch file versi lama
+6. Tampilkan summary hasil
+
+**Upgrade ke versi tertentu:**
+```powershell
+node scripts/upgrade-wwebjs.js 1.34.8
+```
+
+**Output script saat sudah up to date:**
+```
+[upgrade] Versi terinstall : 1.34.7
+[upgrade] Target versi     : 1.34.7
+[  ok   ] Sudah di versi terbaru (1.34.7)
+[  ok   ] Patch 1 sudah ada: delete message.__x_id
+[  ok   ] Patch 2 sudah ada: @lid fallback
+[  ok   ] Semua patch sudah ter-apply, tidak ada yang perlu dilakukan
+```
+
+**Output script saat upgrade berhasil:**
+```
+[upgrade] Versi terinstall : 1.34.7
+[upgrade] Target versi     : 1.34.8
+[upgrade] Upgrading 1.34.7 → 1.34.8...
+[  ok   ] Library berhasil di-upgrade: 1.34.7 → 1.34.8
+[  ok   ] Patch 1 applied: delete message.__x_id
+[  ok   ] Patch 2 applied: @lid fallback
+[  ok   ] Patch file ditulis: patches/whatsapp-web.js+1.34.8.patch
+[  ok   ] Patch lama dihapus: whatsapp-web.js+1.34.7.patch
+[  ok   ] Upgrade selesai: 1.34.7 → 1.34.8
+[upgrade] Jalankan: yarn prod:complete (atau prod lainnya) untuk rebuild.
+```
+
+**Catatan:** Jika salah satu patch gagal apply (ditandai `✗ GAGAL`), berarti struktur kode di versi baru library berubah dan perlu update manual di `scripts/upgrade-wwebjs.js` fungsi `applyCustomPatches()`.
 
 ## Log
 11/03/2022 - v0.9.3.rc.17
@@ -193,6 +248,14 @@ sehingga chat OTP atau history pesan akan tampil ke user
 * Fitur: DevTools renderer bisa dibuka via F12 di semua mode (development maupun production exe)
 * Perbaiki: logout otomatis berulang — penyebabnya endpoint login_x belum support action "refresh", sudah diselesaikan dari sisi server; implementasi refresh dikembalikan ke action "refresh" yang simpel
 * Sistem: IgnoreRefreshError di wacsa.ini diset false — karena secretkey dedicated untuk WACSA, error session invalid harus ditangani dengan logout, bukan diabaikan
+
+2026/09/29 - v0.37.260929
+* Perbaiki: ready event tidak pernah fired setelah scan QR — bug di whatsapp-web.js v1.34.6, hasSynced sudah true sebelum listener dipasang sehingga onAppStateHasSyncedEvent tidak pernah dipanggil; fix dengan upgrade ke v1.34.7 yang sudah ada atomic hasSynced check
+* Perbaiki: authenticated event fired berkali-kali — tambah flag authenticatedSent agar hanya satu kali per siklus login
+* Perbaiki: waClient.destroy() dipanggil sebelum initialize padahal belum pernah init (fresh install) menyebabkan timeout; fix dengan cek pupBrowser sebelum destroy
+* Sistem: Ganti mekanisme patch dari patch-package ke script upgrade-wwebjs.js yang lebih robust — tidak bergantung pada lockfile resolution, mendukung deteksi versi otomatis, dan apply patch kustom langsung ke node_modules
+* Sistem: Upgrade whatsapp-web.js ke versi 1.34.7
+* Sistem: postinstall script diganti dari patch-package ke node scripts/upgrade-wwebjs.js --patch-only
 
 ## Catatan Teknis: Alternatif Refresh Session (jika action "refresh" tidak tersedia)
 

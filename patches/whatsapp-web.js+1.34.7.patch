@@ -1,0 +1,17 @@
+# whatsapp-web.js v1.34.7 — CSA Computer custom patches
+# Generated: 2026-09-29T03:48:00.899Z
+#
+# Patches applied to: node_modules/whatsapp-web.js/src/util/Injected/Utils.js
+#
+# Patch 1: delete message.__x_id
+#   Fix: MediaData.__x_id collides with Msg internal ID field,
+#   causing "Data passed to getter must include an id property" error on send media.
+#   Location: after message object construction, before isChannel check.
+#
+# Patch 2: @lid fallback
+#   Fix: WhatsApp stores messages with @lid format (Linked Devices), but
+#   newMsgKey._serialized uses @c.us format, causing Msg.get() to return undefined.
+#   Location: sendMessage return value, fallback to msgPromise.
+#
+# To re-apply these patches after yarn install:
+#   node scripts/upgrade-wwebjs.js --patch-only

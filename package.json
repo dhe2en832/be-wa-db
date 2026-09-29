@@ -1,6 +1,6 @@
 {
   "name": "wacsa",
-  "version": "0.36.260925",
+  "version": "0.37.260929",
   "description": "Whatsapp API, Powered By CSA Computer",
   "main": "src/app.js",
   "dependencies": {
@@ -13,7 +13,7 @@
     "ini": "^2.0.0",
     "node-fetch": "2.6.7",
     "qrcode": "1.5.0",
-    "whatsapp-web.js": "^1.34.6"
+    "whatsapp-web.js": "1.34.7"
   },
   "devDependencies": {
     "copyfiles": "^2.4.1",
@@ -24,8 +24,9 @@
     "rimraf": "^6.1.3"
   },
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "node scripts/upgrade-wwebjs.js --patch-only",
     "makeCredentials": "node make-credentials.js",
+    "upgrade:wwebjs": "node scripts/upgrade-wwebjs.js",
     "start": "yarn makeCredentials && electron .",
     "build": "rimraf dist && yarn makeCredentials && electron-builder",
     "copy": "copyfiles -f ./environment/ChromeSetup.exe dist/",
